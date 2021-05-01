@@ -1,4 +1,4 @@
-
+l
 
 (
 //function that reads osc values with inputs for name and a variable to store the value
@@ -11,8 +11,8 @@ OSCdef(
 	{
 		arg msg, time, addr, port;
 
-		//msg.postln;
-		valuevar=msg
+		msg.postln;
+		valueVar=msg
 
 	},
 	sourceName,
@@ -22,9 +22,8 @@ OSCdef(
 
 
 )
-
 //reads from /Torso and stores the value in ~torso
-~defFunc.value('/Torso', ~torso)
+~oscReader.value('/Torso', ~torso)
 
 //posts the value of ~torso twice a second
 (
@@ -35,3 +34,6 @@ OSCdef(
 	}
 }.fork
 )
+
+
+

@@ -2,6 +2,10 @@
 ~skeleton =Dictionary.new;
 ~partsSkeleton = ['/Head', '/Neck', '/Torso', '/Right_Shoulder', '/Left_Shoulder', '/Right_Elbow', '/Left_Elbow', '/Right_Hand', 'Left_Hand', '/Right_Knee', '/Left_Knee', '/Right_Foot', '/Left_Foot'];
 
+//nested dictionaries with values used for auto-calibration
+~calibration = Dictionary.new;
+~partsSkeleton.collect({|part| ~calibration[part] =Dictionary.new})
+
 (
 //function that reads osc values with inputs for name and a variable to store the value
 ~oscReader=

@@ -1,1 +1,0 @@
-{SinOsc.ar*0.2}.play

@@ -13,7 +13,6 @@ x.free;
 
 
 
-
 // Prepare the buffer
 b = Buffer.alloc(s, 512);
 
@@ -159,9 +158,6 @@ s.waitForBoot{
 	Synth(\ptr, [\buf, b, \out, ~ptrBus],~ptrGrp);
 	Synth(\rec, [\ptrIn, ~ptrBus, \micIn, ~micBus, \buf, b], ~recGrp);
 
-
-	//Loads the forest sound buffer
-	~forest = Buffer.read(s, PathName(thisProcess.nowExecutingPath).parentPath++"forest_long.wav");
 
 	s.sync;
 	b.zero;

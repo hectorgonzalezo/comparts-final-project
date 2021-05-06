@@ -1,3 +1,5 @@
+<<<<<<< HEAD
+=======
 
 (
 x={
@@ -299,27 +301,12 @@ h
 
 
 
-
-
-
-~buffers = {Buffer.alloc(s, SampleRate.ir* 60, 1);}!20
-SynthDef(\recorder, { arg out = 0, bufnum, run = 0;
-      var input;
-	input = SoundIn.ar(0);
-    RecordBuf.ar(input, bufnum, doneAction:2, run:1, loop:0);
-}).add;
+s.record
+{SoundIn.ar(0)!2}.play
 
 
 
 
-
-a=Synth(\grabador, [\bufnum, ~b1]
-~bol= true;
-
-
-
-
-{1.postln; 1.wait;}.fork
 // Run this first!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 b=Buffer.read(s,'/Users/lertir/Music/SuperCollider Recordings/SC_210505_111034.aiff')
 

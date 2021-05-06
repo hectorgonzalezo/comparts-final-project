@@ -84,7 +84,7 @@ OSCdef(
 (
 {
 	inf.do{
-		//~skeleton.collect({ |part| part.postln });
+		~skeleton.collect({ |part| part.postln });
 		0.5.wait;
 	}
 }.fork

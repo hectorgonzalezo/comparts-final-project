@@ -143,7 +143,7 @@ s.waitForBoot{
 
 		player = XFade2.ar(sig1 * amp1, sig* amp2, which*2-1);
 
-		Out.ar(out, player * env * vol)
+		Out.ar(Limiter.ar(out, 0.9), player * env * vol)
 	}).add;
 
 
@@ -194,13 +194,14 @@ s.waitForBoot{
 		);
 	});
 //0 no granulation, 1 granulation
-	~granGrp.set(\gateWhich, 0);
+	~granGrp.set(\gateWhich, 1);
 
 	//variables for use of task below
 	~lastSound = ~sound;
 	~soundArray= Array.newClear;
 	~soundAv = 0;
 	~freeze = false;
+
 
 
 		//Create GUI to inform about sound levels
@@ -226,7 +227,7 @@ s.waitForBoot{
 
 
 
-
+/*
 
 	//changes sound in real time according to data received by sensors
 	Task({
@@ -290,6 +291,117 @@ h
 	}
 	).play;
 
-
+*/
 }
+
 )
+
+
+
+
+s.record
+{SoundIn.ar(0)!2}.play
+
+
+
+
+// Run this first!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+b=Buffer.read(s,'/Users/lertir/Music/SuperCollider Recordings/SC_210505_111034.aiff')
+
+b.play
+
+
+
+
+
+(
+//prep some buffers
+b = Buffer.read(s,File.realpath(FluidBufOnsetSlice.class.filenameSymbol).dirname.withTrailingSlash ++ "../AudioFiles/Nicol-LoopE-M.wav");
+c = Buffer.new(s);
+)
+
+(
+// with basic params, with a minimum slight length to avoid over
+Routine{
+    t = Main.elapsedTime;
+    FluidBufNoveltySlice.process(s,b, indices: c, threshold:0.4,filterSize: 4, minSliceLength: 8).wait;
+    (Main.elapsedTime - t).postln;
+}.play
+)
+
+//check the number of slices: it is the number of frames in the transBuf minus the boundary index.
+c.query;
+
+
+
+
+//loops over a splice
+(
+{
+    BufRd.ar(2, b,
+        Phasor.ar(0,1,
+            BufRd.kr(1, c,
+				LFNoise0.kr(1).range(0, BufFrames.kr(c) ), 0, 2),
+            BufRd.kr(1, c,
+				LFNoise0.kr(1).range(1, BufFrames.kr(c)), 0, 2),
+            BufRd.kr(1,c,
+				LFNoise0.kr(1).range(0, BufFrames.kr(c) - 1), 0, 1)), 0, 2);
+        }.play;
+)
+
+c.play
+
+
+
+
+
+
+
+
+b.play
+
+
+(
+
+    c = Buffer.new(s);
+    d = Buffer.new(s);
+    e = Buffer.new(s);
+)
+
+// run with basic parameters
+(
+    Routine{
+        t = Main.elapsedTime;
+        FluidBufHPSS.process(s, b, harmonic: c, percussive: d).wait;
+        (Main.elapsedTime - t).postln;
+    }.play
+)
+c.query
+d.query
+//play the harmonic
+c.play;
+//play the percussive
+d.play;
+
+//nullsumming tests
+{(PlayBuf.ar(2,c))+(PlayBuf.ar(2,d))+(-1*PlayBuf.ar(2,b,doneAction:2))}.play
+
+//more daring parameters, in mode 2
+(
+Routine{
+    t = Main.elapsedTime;
+    FluidBufHPSS.process(s, b, harmonic: c, percussive: d, residual:e, harmFilterSize:31, maskingMode:2, harmThreshFreq1: 0.005, harmThreshAmp1: 7.5, harmThreshFreq2: 0.168, harmThreshAmp2: 7.5, percThreshFreq1: 0.004, percThreshAmp1: 26.5, percThreshFreq2: 0.152, percThreshAmp2: 26.5,windowSize:4096,hopSize:512)
+    .wait;
+    (Main.elapsedTime - t).postln;
+}.play
+)
+
+//play the harmonic
+c.play;
+//play the percussive
+d.play;
+//play the residual
+e.play;
+
+//still nullsumming
+{PlayBuf.ar(1,c) + PlayBuf.ar(1,d) + PlayBuf.ar(1,e) - PlayBuf.ar(1,b,doneAction:2)}.play;

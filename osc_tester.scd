@@ -7,7 +7,7 @@
 
 (// stores the values of the whole skeleton
 ~skeleton =Dictionary.new;
-~partsSkeleton = ['/Head', '/Neck', '/Torso', '/Right_Shoulder', '/Left_Shoulder', '/Right_Elbow', '/Left_Elbow', '/Right_Hand', 'Left_Hand', '/Right_Knee', '/Left_Knee', '/Right_Foot', '/Left_Foot'];
+~partsSkeleton = ['/Head', '/Neck', '/Torso', '/Right_Shoulder', '/Left_Shoulder', '/Right_Elbow', '/Left_Elbow', '/Right_Hand', 'Left_Hand', '/Right_Knee', '/Left_Knee', '/Right_Foot', '/Left_Foot', '/People'];
 
 
 //nested dictionaries with values used for auto-calibration
@@ -46,6 +46,8 @@ OSCdef(
 
 
 			//auto-calibration
+			if(sourceName != '/People',
+				{
 		case
 		{msg[1] > ~calibration[sourceName][\xhi]} {~calibration[sourceName][\xhi]= msg[1]}
 		{msg[1] < ~calibration[sourceName][\xlo]} {~calibration[sourceName][\xlo] = msg[1]}
@@ -53,6 +55,14 @@ OSCdef(
 		{msg[2] < ~calibration[sourceName][\ylo]} {~calibration[sourceName][\ylo] = msg[2]}
 		{msg[3] > ~calibration[sourceName][\zhi]} {~calibration[sourceName][\zhi] = msg[3]}
 		{msg[3] < ~calibration[sourceName][\zlo]} {~calibration[sourceName][\zlo]= msg[3]}
+				},
+				{
+					if(msg[1].min(1) != ~previousPeople,
+						{ ~people = msg[1].min(1);
+							~people.postln;
+					});
+					~previousPeople = msg[1].min(1);
+			});
 
 	},
 	sourceName,
@@ -74,7 +84,7 @@ OSCdef(
 (
 {
 	inf.do{
-		~skeleton.collect({ |part| part.postln });
+		//~skeleton.collect({ |part| part.postln });
 		0.5.wait;
 	}
 }.fork

@@ -47,6 +47,28 @@ x.free; // Free the synth
 b.free; // Free the buffer
 
 
+s.dumpOSC
+(
+
+var n, id;
+
+
+
+//loopback address is 127.0.0.1- try substituting the IP address of another user's machine
+
+n=NetAddr("127.0.0.1", 57110); //57110 is the port number; this is the standard number used by the Server
+
+
+
+id=s.nextNodeID;
+
+n.sendMsg("s_new",\default,id,0,0);   //sendMsg works out the correct OSC message for you
+
+
+
+SystemClock.sched(1.0,{n.sendMsg("n_free",id); });
+
+)
 
 
 (
@@ -193,7 +215,7 @@ s.waitForBoot{
 		], ~granGrp
 		);
 	});
-//0 no granulation, 1 granulation
+	//0 no granulation, 1 granulation
 	~granGrp.set(\gateWhich, 1);
 
 	//variables for use of task below
@@ -204,7 +226,7 @@ s.waitForBoot{
 
 
 
-		//Create GUI to inform about sound levels
+	//Create GUI to inform about sound levels
 
 
 	~gui = Window("Sound Level", Rect(400, 400, 500, 300));
@@ -227,197 +249,200 @@ s.waitForBoot{
 
 
 
-/*
+	/*
 
 	//changes sound in real time according to data received by sensors
 	Task({
-		2.wait;
-		inf.do{
+	2.wait;
+	inf.do{
 
 
 
-			//freezes sound if sound is loud enough and movement is detected
-			//also changes density and synchronous/asynchronous values in granulator
-			if(((~sound >= (~soundAv)) && (~motion == 1) && (~freeze == false) && (0.004.coin)),
-				{
-					~ptrGrp.set(\rate, 1);
-					~granGrp.set(\dens, {exprand(20,60)});
-					[~granGrp.set(\sync, 1),~g.collect({|n| n.set(\sync, {[0, 1].choose})})].choose;
-					"freeze".postln;
-					~freeze = true;
+	//freezes sound if sound is loud enough and movement is detected
+	//also changes density and synchronous/asynchronous values in granulator
+	if(((~sound >= (~soundAv)) && (~motion == 1) && (~freeze == false) && (0.004.coin)),
+	{
+	~ptrGrp.set(\rate, 1);
+	~granGrp.set(\dens, {exprand(20,60)});
+	[~granGrp.set(\sync, 1),~g.collect({|n| n.set(\sync, {[0, 1].choose})})].choose;
+	"freeze".postln;
+	~freeze = true;
 
-					//sends output to GUI
-					{~currentSound.string_("Current Sound : " ++~sound.asString).stringColor_(Color.green)}.defer;
-h
-			},
-				{
-					//sends output to GUI
-					{~currentSound.string_("Current Sound : " ++~sound.asString).stringColor_(Color.blue)}.defer;
-				}
-			);
-
-
-			//starts real time granulator if motion is detected
-			~granGrp.set(\gateWhich, ~motion);
-
-			//~motion.postln;
-
-			//~sound.postln;
-
-			//if no motion is detected and sound is frozen, unfreeze it
-			if((~motion == 0) && (~freeze == true),
-				{
-					{~ptrGrp.set(\rate, 1);
-						"unfreeze".postln;
-					}.defer(1);
-					~freeze = false;
-			});
+	//sends output to GUI
+	{~currentSound.string_("Current Sound : " ++~sound.asString).stringColor_(Color.green)}.defer;
+	h
+	},
+	{
+	//sends output to GUI
+	{~currentSound.string_("Current Sound : " ++~sound.asString).stringColor_(Color.blue)}.defer;
+	}
+	);
 
 
-			//variable to compare previous sound volume
-			~lastSound = ~sound;
+	//starts real time granulator if motion is detected
+	~granGrp.set(\gateWhich, ~motion);
 
-			//variable that averages sound pressure values over time
-			~soundArray = ~soundArray++~sound;
-			~soundAv = ~soundArray.sum/~soundArray.size;
+	//~motion.postln;
 
-			//changes GUI values
-			{~currentSound.string_("Current Sound : " ++~sound.asString)}.defer;
-			{~averageSound.string_("Average Sound :" ++~soundAv.round(0.001).asString)}.defer;
+	//~sound.postln;
 
-			0.02.wait;
-		}
+	//if no motion is detected and sound is frozen, unfreeze it
+	if((~motion == 0) && (~freeze == true),
+	{
+	{~ptrGrp.set(\rate, 1);
+	"unfreeze".postln;
+	}.defer(1);
+	~freeze = false;
+	});
+
+
+	//variable to compare previous sound volume
+	~lastSound = ~sound;
+
+	//variable that averages sound pressure values over time
+	~soundArray = ~soundArray++~sound;
+	~soundAv = ~soundArray.sum/~soundArray.size;
+
+	//changes GUI values
+	{~currentSound.string_("Current Sound : " ++~sound.asString)}.defer;
+	{~averageSound.string_("Average Sound :" ++~soundAv.round(0.001).asString)}.defer;
+
+	0.02.wait;
+	}
 
 	}
 	).play;
 
-*/
+	*/
 }
 
 )
 
 
+s.dumpOSC(0)
 
 
 
-
-
-~buffers = {Buffer.alloc(s, SampleRate.ir* 60, 1);}!20
-SynthDef(\recorder, { arg out = 0, bufnum, run = 0;
-      var input;
-	input = SoundIn.ar(0);
-    RecordBuf.ar(input, bufnum, doneAction:2, run:1, loop:0);
+(
+~buffer = Buffer.alloc(s, SampleRate.ir*120, 1);
+SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
+	var input;
+	input = SoundIn.ar(0) *Linen.kr(gate, doneAction:2);
+	RecordBuf.ar(input, bufnum, doneAction:2, run:1, loop:0);
 }).add;
 
+)
 
 
-
-
-a=Synth(\grabador, [\bufnum, ~b1]
-~bol= true;
-
-
-
-
-{1.postln; 1.wait;}.fork
 // Run this first!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 b=Buffer.read(s,'/Users/lertir/Music/SuperCollider Recordings/SC_210505_111034.aiff')
-
-b.play
-
-
-
-
-
 (
-//prep some buffers
-b = Buffer.read(s,File.realpath(FluidBufOnsetSlice.class.filenameSymbol).dirname.withTrailingSlash ++ "../AudioFiles/Nicol-LoopE-M.wav");
-c = Buffer.new(s);
+~processFunc = {
+	{
+		1.do{
+			Buffer.freeAll;
+			~oboeBuf = Buffer.alloc(s, SampleRate.ir*120, 1);
+			//start recording and restart bufers
+			~harmBuf = Buffer.new(s);
+			~percBuf = Buffer.new(s);
+			e = Buffer.new(s);
+			a=Synth(\recorder, [\bufnum, ~buffers]);
+			rrand(60, 120).wait;
+			a.release;
+			2.wait;
+			//process the recording
+			Routine{
+				t = Main.elapsedTime;
+				FluidBufHPSS.process(s, ~oboeBuf, harmonic: ~harmBuf, percussive: ~percBuf).wait;
+				(Main.elapsedTime - t).postln;
+			}.play;
+			2.wait;
+
+			~harmBuf.query;
+			~percBuf.query;
+
+			1.wait;
+
+			~harmSliceBuf = Buffer.new(s);
+			~percSliceBuf = Buffer.new(s);
+
+
+
+				//slice harmonic sounds
+				Routine{
+					t = Main.elapsedTime;
+					FluidBufNoveltySlice.process(s,~harmBuf, indices: ~harmSliceBuf, threshold:0.4,filterSize: 4, minSliceLength: 8).wait;
+					(Main.elapsedTime - t).postln;
+				}.play
+			1.wait;
+			    //slice percusive sounds
+			Routine{
+					t = Main.elapsedTime;
+					FluidBufNoveltySlice.process(s,~percBuf, indices: ~percSliceBuf, threshold:0.4,filterSize: 4, minSliceLength: 8).wait;
+					(Main.elapsedTime - t).postln;
+				}.play
+
+			1.wait;
+
+			//check the number of slices: it is the number of frames in the transBuf minus the boundary index.
+			~harmSliceBuf.query;
+			~percSliceBuf.query;
+
+			//loops over a splice
+			(
+				~harmPlayer ={
+					BufRd.ar(2, ~harmBuf,
+						Phasor.ar(0,1,
+							BufRd.kr(1, ~harmSliceBuf,
+								LFNoise0.kr(1).range(0, BufFrames.kr(~harmSliceBuf) ), 0, 2),
+							BufRd.kr(1, ~harmSliceBuf,
+								LFNoise0.kr(1).range(1, BufFrames.kr(~harmSliceBuf)), 0, 2),
+							BufRd.kr(1,~harmSliceBuf,
+								LFNoise0.kr(1).range(0, BufFrames.kr(~harmSliceBuf) - 1), 0, 1)), 0, 2);
+				}.play;
+			)
+
+
+			(
+				~percPlayer ={
+					BufRd.ar(2, ~percBuf,
+						Phasor.ar(0,1,
+							BufRd.kr(1, ~percSliceBuf,
+								LFNoise0.kr(1).range(0, BufFrames.kr(~harmSliceBuf) ), 0, 2),
+							BufRd.kr(1, ~harmSliceBuf,
+								LFNoise0.kr(1).range(1, BufFrames.kr(~harmSliceBuf)), 0, 2),
+							BufRd.kr(1,~harmSliceBuf,
+								LFNoise0.kr(1).range(0, BufFrames.kr(~harmSliceBuf) - 1), 0, 1)), 0, 2);
+				}.play;
+			)
+
+
+
+		}
+	}.fork
+}
 )
 
-(
-// with basic params, with a minimum slight length to avoid over
-Routine{
-    t = Main.elapsedTime;
-    FluidBufNoveltySlice.process(s,b, indices: c, threshold:0.4,filterSize: 4, minSliceLength: 8).wait;
-    (Main.elapsedTime - t).postln;
-}.play
-)
 
-//check the number of slices: it is the number of frames in the transBuf minus the boundary index.
-c.query;
-
-
-
-
-//loops over a splice
 (
 {
-    BufRd.ar(2, b,
-        Phasor.ar(0,1,
-            BufRd.kr(1, c,
-				LFNoise0.kr(1).range(0, BufFrames.kr(c) ), 0, 2),
-            BufRd.kr(1, c,
-				LFNoise0.kr(1).range(1, BufFrames.kr(c)), 0, 2),
-            BufRd.kr(1,c,
-				LFNoise0.kr(1).range(0, BufFrames.kr(c) - 1), 0, 1)), 0, 2);
-        }.play;
+	inf.do{
+		|i|
+		i.postln;
+		if((~people ==1) && (~previousPerson == 0),
+			{
+				1.do{
+					//this will start the process of recording and processing the sound
+					~processFunc.value
+
+
+				}
+			}.fork
+		);
+
+		~previousPerson = ~people;
+		1.wait;
+	}
+}.fork
 )
 
-c.play
-
-
-
-
-
-
-
-
-b.play
-
-
-(
-
-    c = Buffer.new(s);
-    d = Buffer.new(s);
-    e = Buffer.new(s);
-)
-
-// run with basic parameters
-(
-    Routine{
-        t = Main.elapsedTime;
-        FluidBufHPSS.process(s, b, harmonic: c, percussive: d).wait;
-        (Main.elapsedTime - t).postln;
-    }.play
-)
-c.query
-d.query
-//play the harmonic
-c.play;
-//play the percussive
-d.play;
-
-//nullsumming tests
-{(PlayBuf.ar(2,c))+(PlayBuf.ar(2,d))+(-1*PlayBuf.ar(2,b,doneAction:2))}.play
-
-//more daring parameters, in mode 2
-(
-Routine{
-    t = Main.elapsedTime;
-    FluidBufHPSS.process(s, b, harmonic: c, percussive: d, residual:e, harmFilterSize:31, maskingMode:2, harmThreshFreq1: 0.005, harmThreshAmp1: 7.5, harmThreshFreq2: 0.168, harmThreshAmp2: 7.5, percThreshFreq1: 0.004, percThreshAmp1: 26.5, percThreshFreq2: 0.152, percThreshAmp2: 26.5,windowSize:4096,hopSize:512)
-    .wait;
-    (Main.elapsedTime - t).postln;
-}.play
-)
-
-//play the harmonic
-c.play;
-//play the percussive
-d.play;
-//play the residual
-e.play;
-
-//still nullsumming
-{PlayBuf.ar(1,c) + PlayBuf.ar(1,d) + PlayBuf.ar(1,e) - PlayBuf.ar(1,b,doneAction:2)}.play;
->>>>>>> machlis

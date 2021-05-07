@@ -1,4 +1,186 @@
 
+
+//first run osc_tester.scd
+
+(
+~buffer = Buffer.alloc(s, SampleRate.ir*120, 1);
+
+
+SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
+	var input;
+	input = SoundIn.ar(0) *Linen.kr(gate, doneAction:2);
+	RecordBuf.ar(input, bufnum, doneAction:2, run:1, loop:0);
+}).add;
+
+~harmProxy = NodeProxy.audio(s, 2).play;
+~harmProxy.fadeTime=5;
+~percProxy = NodeProxy.audio(s, 2).play;
+~percProxy.fadeTime=5;
+
+~processFunc = {
+	{
+		1.do{
+			Buffer.freeAll;
+			~oboeBuf = Buffer.alloc(s, s.sampleRate*120, 1);
+			//start recording and restart bufers
+			~harmBuf = Buffer.new(s);
+			~percBuf = Buffer.new(s);
+			e = Buffer.new(s);
+			a=Synth(\recorder, [\bufnum, ~buffers]);
+			rrand(5, 10).wait;
+			a.release;
+
+			2.wait;
+
+			//process the recording
+			Routine{
+				t = Main.elapsedTime;
+				FluidBufHPSS.process(s, ~oboeBuf, harmonic: ~harmBuf, percussive: ~percBuf).wait;
+				(Main.elapsedTime - t).postln;
+			}.play;
+
+			2.wait;
+
+			~harmBuf.query;
+			~percBuf.query;
+
+			1.wait;
+
+			~harmSliceBuf = Buffer.new(s);
+			~percSliceBuf = Buffer.new(s);
+
+
+
+			//slice harmonic sounds
+			Routine{
+				t = Main.elapsedTime;
+				FluidBufNoveltySlice.process(s,~harmBuf, indices: ~harmSliceBuf, threshold:0.4,filterSize: 4, minSliceLength: 8).wait;
+				(Main.elapsedTime - t).postln;
+			}.play;
+
+
+			//slice percusive sounds
+			Routine{
+				t = Main.elapsedTime;
+				FluidBufNoveltySlice.process(s,~percBuf, indices: ~percSliceBuf, threshold:0.4,filterSize: 4, minSliceLength: 8).wait;
+				(Main.elapsedTime - t).postln;
+			}.play;
+
+			1.wait;
+
+			//check the number of slices: it is the number of frames in the transBuf minus the boundary index.
+			~harmSliceBuf.query;
+			~percSliceBuf.query;
+
+			0.5.wait;
+
+			//start playing the sounds
+			~playerFunc.value;
+
+
+
+
+		}
+	}.fork
+};
+~harmProxy.set(\amp, 0)
+
+~playerFunc = {
+
+	~harmProxy.source ={
+		|noiseSpd =1, amp =1|
+
+		BufRd.ar(1, ~harmBuf,
+			Phasor.ar(0,1,
+				BufRd.kr(1, ~harmSliceBuf,
+					LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~harmSliceBuf) -noiseSpd), 0, 2),
+				BufRd.kr(1, ~harmSliceBuf,
+					LFNoise0.kr(noiseSpd).range(1, BufFrames.kr(~harmSliceBuf)), 0, 2),
+				BufRd.kr(1,~harmSliceBuf,
+					LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~harmSliceBuf) - 1), 0, 1)), 0, 2) * amp;
+	};
+
+	~harmProxy[10] = \filter -> {|in, pan=0| Splay.ar(in, 0, 1, pan)};
+
+	~harmProxy[20] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
+
+	~percProxy.source ={
+		|noiseSpd =1, amp =1|
+
+		BufRd.ar(1, ~percBuf,
+			Phasor.ar(0,1,
+				BufRd.kr(1, ~percSliceBuf,
+					LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~harmSliceBuf) -1), 0, 2),
+				BufRd.kr(1, ~harmSliceBuf,
+					LFNoise0.kr(noiseSpd).range(1, BufFrames.kr(~harmSliceBuf)), 0, 2),
+				BufRd.kr(1,~harmSliceBuf,
+					LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~harmSliceBuf) - 1), 0, 1)), 0, 2) * amp;
+	};
+
+	~percProxy[10] = \filter -> {|in, pan=0| Splay.ar(in, 0, 1, pan)};
+
+	~harmProxy[20] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
+
+
+	Tdef(\interaction).play;
+};
+
+
+
+{
+	inf.do{
+		|i|
+
+		//if one person appears
+		case
+		{(~people ==1) && (~previousPerson == 0)}
+		//this will start the process of recording and processing the sound
+		  {~processFunc.value;
+			"person detected".postln;
+		}
+		//if it disappears from range
+		{(~people ==0) && (~previousPerson == 1)}
+		//tstop proxys
+		  {[~harmProxy, ~percProxy].collect({ |i| i.source = nil});
+			"person out of range".postln;
+			Tdef(\interaction).stop;
+		};
+
+
+
+		~previousPerson = ~people;
+		1.wait;
+	}
+}.fork;
+)
+
+~percProxy.stop
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 (
 x={
 	var in, amp, freq, hasFreq, out;
@@ -71,6 +253,9 @@ SystemClock.sched(1.0,{n.sendMsg("n_free",id); });
 )
 
 
+
+
+// other ideas
 (
 s.freeAll;
 s.reboot;
@@ -317,132 +502,3 @@ s.waitForBoot{
 }
 
 )
-
-
-s.dumpOSC(0)
-
-
-
-(
-~buffer = Buffer.alloc(s, SampleRate.ir*120, 1);
-SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
-	var input;
-	input = SoundIn.ar(0) *Linen.kr(gate, doneAction:2);
-	RecordBuf.ar(input, bufnum, doneAction:2, run:1, loop:0);
-}).add;
-
-)
-
-
-// Run this first!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-b=Buffer.read(s,'/Users/lertir/Music/SuperCollider Recordings/SC_210505_111034.aiff')
-(
-~processFunc = {
-	{
-		1.do{
-			Buffer.freeAll;
-			~oboeBuf = Buffer.alloc(s, SampleRate.ir*120, 1);
-			//start recording and restart bufers
-			~harmBuf = Buffer.new(s);
-			~percBuf = Buffer.new(s);
-			e = Buffer.new(s);
-			a=Synth(\recorder, [\bufnum, ~buffers]);
-			rrand(60, 120).wait;
-			a.release;
-			2.wait;
-			//process the recording
-			Routine{
-				t = Main.elapsedTime;
-				FluidBufHPSS.process(s, ~oboeBuf, harmonic: ~harmBuf, percussive: ~percBuf).wait;
-				(Main.elapsedTime - t).postln;
-			}.play;
-			2.wait;
-
-			~harmBuf.query;
-			~percBuf.query;
-
-			1.wait;
-
-			~harmSliceBuf = Buffer.new(s);
-			~percSliceBuf = Buffer.new(s);
-
-
-
-				//slice harmonic sounds
-				Routine{
-					t = Main.elapsedTime;
-					FluidBufNoveltySlice.process(s,~harmBuf, indices: ~harmSliceBuf, threshold:0.4,filterSize: 4, minSliceLength: 8).wait;
-					(Main.elapsedTime - t).postln;
-				}.play
-			1.wait;
-			    //slice percusive sounds
-			Routine{
-					t = Main.elapsedTime;
-					FluidBufNoveltySlice.process(s,~percBuf, indices: ~percSliceBuf, threshold:0.4,filterSize: 4, minSliceLength: 8).wait;
-					(Main.elapsedTime - t).postln;
-				}.play
-
-			1.wait;
-
-			//check the number of slices: it is the number of frames in the transBuf minus the boundary index.
-			~harmSliceBuf.query;
-			~percSliceBuf.query;
-
-			//loops over a splice
-			(
-				~harmPlayer ={
-					BufRd.ar(2, ~harmBuf,
-						Phasor.ar(0,1,
-							BufRd.kr(1, ~harmSliceBuf,
-								LFNoise0.kr(1).range(0, BufFrames.kr(~harmSliceBuf) ), 0, 2),
-							BufRd.kr(1, ~harmSliceBuf,
-								LFNoise0.kr(1).range(1, BufFrames.kr(~harmSliceBuf)), 0, 2),
-							BufRd.kr(1,~harmSliceBuf,
-								LFNoise0.kr(1).range(0, BufFrames.kr(~harmSliceBuf) - 1), 0, 1)), 0, 2);
-				}.play;
-			)
-
-
-			(
-				~percPlayer ={
-					BufRd.ar(2, ~percBuf,
-						Phasor.ar(0,1,
-							BufRd.kr(1, ~percSliceBuf,
-								LFNoise0.kr(1).range(0, BufFrames.kr(~harmSliceBuf) ), 0, 2),
-							BufRd.kr(1, ~harmSliceBuf,
-								LFNoise0.kr(1).range(1, BufFrames.kr(~harmSliceBuf)), 0, 2),
-							BufRd.kr(1,~harmSliceBuf,
-								LFNoise0.kr(1).range(0, BufFrames.kr(~harmSliceBuf) - 1), 0, 1)), 0, 2);
-				}.play;
-			)
-
-
-
-		}
-	}.fork
-}
-)
-
-
-(
-{
-	inf.do{
-		|i|
-		i.postln;
-		if((~people ==1) && (~previousPerson == 0),
-			{
-				1.do{
-					//this will start the process of recording and processing the sound
-					~processFunc.value
-
-
-				}
-			}.fork
-		);
-
-		~previousPerson = ~people;
-		1.wait;
-	}
-}.fork
-)
-

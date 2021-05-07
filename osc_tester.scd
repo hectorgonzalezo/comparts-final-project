@@ -7,7 +7,7 @@
 
 (// stores the values of the whole skeleton
 ~skeleton =Dictionary.new;
-~partsSkeleton = ['/Head', '/Neck', '/Torso', '/Right_Shoulder', '/Left_Shoulder', '/Right_Elbow', '/Left_Elbow', '/Right_Hand', 'Left_Hand', '/Right_Knee', '/Left_Knee', '/Right_Foot', '/Left_Foot', '/People'];
+~partsSkeleton = ['/Head', '/Neck', '/Torso', '/Right_Shoulder', '/Left_Shoulder', '/Right_Elbow', '/Left_Elbow', '/Right_Hand', '/Left_Hand', '/Right_Knee', '/Left_Knee', '/Right_Foot', '/Left_Foot', '/People'];
 
 
 //nested dictionaries with values used for auto-calibration
@@ -29,7 +29,7 @@
 });
 //example of use, calibration of low bundary in x axis on head
 //~calibration['/Head'][\xlo]
-
+//~skeleton[\head]
 (
 //function that reads osc values with inputs for name and a variable to store the value
 ~oscReader=
@@ -60,6 +60,7 @@ OSCdef(
 					if(msg[1].min(1) != ~previousPeople,
 						{ ~people = msg[1].min(1);
 							~people.postln;
+
 					});
 					~previousPeople = msg[1].min(1);
 			});
@@ -69,7 +70,6 @@ OSCdef(
 	nil,
 	port
 )}
-
 
 );
 //reads from /Torso and stores the value in ~torso
@@ -81,13 +81,78 @@ OSCdef(
 
 
 //posts the value of the whole dictionary twice a second
-(
+
+Tdef(\valuePoster,
 {
 	inf.do{
 		~skeleton.collect({ |part| part.postln });
 		0.5.wait;
 	}
-}.fork
+});
+
+//Tdef(\valuePoster).play
+
+
+//Tdefs that help interact with the soud
+
+Tdef(\interaction,
+	{
+		inf.do{
+			|i|
+
+			~harmProxy.set(\amp,
+				//info coming from OSCdefs
+				~skeleton['/Right_Hand'][2].linlin(
+					//mape low and high ranges given by calibration to desired values
+					~calibration['/Right_Hand'][\ylo],
+					~calibration['/Right_Hand'][\yhi],
+					0,
+					20),
+				\pan,
+				~skeleton['/Right_Hand'][1].linlin(
+					//mape low and high ranges given by calibration to desired values
+					~calibration['/Right_Hand'][\xlo],
+					~calibration['/Right_Hand'][\xhi],
+					-1,
+					1),
+				\mix,
+				~skeleton['/Right_Hand'][3].linlin(
+					//mape low and high ranges given by calibration to desired values
+					~calibration['/Right_Hand'][\zlo],
+					~calibration['/Right_Hand'][\zhi],
+					0,
+					1)
+
+			);
+
+
+
+			~percProxy.set(\amp,
+				~skeleton['/Left_Hand'][2].linlin(
+					~calibration['/Left_Hand'][\ylo],
+					~calibration['/Left_Hand'][\yhi],
+					0,
+					20),
+				\pan,
+				~skeleton['/Left_Hand'][1].linlin(
+					//mape low and high ranges given by calibration to desired values
+					~calibration['/Left_Hand'][\xlo],
+					~calibration['/Left_Hand'][\xhi],
+					-1,
+					1),
+				\mix,
+				~skeleton['/Left_Hand'][3].linlin(
+					//mape low and high ranges given by calibration to desired values
+					~calibration['/Left_Hand'][\zlo],
+					~calibration['/Left_Hand'][\zhi],
+					0,
+					1)
+			);
+
+
+			0.2.wait;
+		}
+	}
 )
 )
 

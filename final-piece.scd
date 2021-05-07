@@ -1,7 +1,9 @@
 
 (
 //load the file kinect code
-"osc_tester.scd".resolveRelative.load;
+"kinect-receiver.scd".resolveRelative.load;
+
+~previousPerson = 0;
 
 
 SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
@@ -115,7 +117,7 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 
 
 
-	~harmProxy[20]= \filter -> ~complexResFunc.value;
+	~harmProxy[20]= \filter -> ~complexResFunc;
 
 	~harmProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
 
@@ -134,14 +136,13 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 
 	~percProxy[10] = \filter -> {|in, pan=0| Splay.ar(in, 0, 1, pan)};
 
-	~percProxy[20]= \filter -> ~complexResFunc.value;
+	~percProxy[20]= \filter -> ~complexResFunc;
 
 	~harmProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
 
 
 	Tdef(\interaction).play;
 };
-{ComplexRes.ar(Pulse.ar(0.1,0.001,0.1),50+ 5000*SinOsc.ar(50),1)}.play;
 
 
 {

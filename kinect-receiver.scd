@@ -129,6 +129,7 @@ Tdef(\interaction,
 			|i|
 
 			~harmProxy.set(
+				//hand
 				\amp, ~mapFunc.value('/Right_Hand', "y", 0, 5),
 				\pan, ~mapFunc.value('/Right_Hand', "x", -1, 1),
 				\mix, ~mapFunc.value('/Right_Hand', "z", 0.001, 1, false),//false makes it exponential
@@ -139,13 +140,14 @@ Tdef(\interaction,
 				\modLoRange, ~mapFunc.value('/Right_Knee', "z", 30, 500),
 
 				//Foot
-				\modHiMul, ~mapFunc.value('/Right_Foot', "x", 1, 3.5)
+				\modHiMul, ~mapFunc.value('/Right_Foot', "x", 1, 3.5),
 				\resonanceDecay, ~mapFunc.value('/Right_Foot', "y", 0.1, 1)
 
 			);
 
 
-			~percProxy.set(\amp,
+			~percProxy.set(
+				//hand
 				\amp, ~mapFunc.value('/Left_Hand', "y", 0, 5),
 				\pan, ~mapFunc.value('/Left_Hand', "x", -1, 1),
 				\mix, ~mapFunc.value('/Left_Hand', "z", 0.001, 1, false),//false makes it exponential

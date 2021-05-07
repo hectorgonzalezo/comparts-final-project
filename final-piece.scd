@@ -1,9 +1,7 @@
 
-
-//first run osc_tester.scd
-
 (
-~buffer = Buffer.alloc(s, SampleRate.ir*120, 1);
+//load the file kinect code
+"osc_tester.scd".resolveRelative.load;
 
 
 SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
@@ -11,6 +9,18 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 	input = SoundIn.ar(0) *Linen.kr(gate, doneAction:2);
 	RecordBuf.ar(input, bufnum, doneAction:2, run:1, loop:0);
 }).add;
+
+
+
+~complexResFunc = {
+		|in, mixMod, modSpeed= 200, modLoRange=200, modHiMul= 2, resonanceDecay=0.1|
+		XFade2.ar(
+			in,
+			ComplexRes.ar(
+				in,
+				SinOsc.kr(modSpeed).range(modLoRange, modLoRange*modHiMul),
+				0.1),
+			mixMod)};
 
 ~harmProxy = NodeProxy.audio(s, 2).play;
 ~harmProxy.fadeTime=5;
@@ -21,12 +31,13 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 	{
 		1.do{
 			Buffer.freeAll;
+
 			~oboeBuf = Buffer.alloc(s, s.sampleRate*120, 1);
 			//start recording and restart bufers
 			~harmBuf = Buffer.new(s);
 			~percBuf = Buffer.new(s);
 			e = Buffer.new(s);
-			a=Synth(\recorder, [\bufnum, ~buffers]);
+			a=Synth(\recorder, [\bufnum, ~oboeBuf]);
 			rrand(5, 10).wait;
 			a.release;
 
@@ -83,7 +94,7 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 		}
 	}.fork
 };
-~harmProxy.set(\amp, 0)
+
 
 ~playerFunc = {
 
@@ -102,7 +113,11 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 
 	~harmProxy[10] = \filter -> {|in, pan=0| Splay.ar(in, 0, 1, pan)};
 
-	~harmProxy[20] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
+
+
+	~harmProxy[20]= \filter -> ~complexResFunc.value;
+
+	~harmProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
 
 	~percProxy.source ={
 		|noiseSpd =1, amp =1|
@@ -119,12 +134,14 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 
 	~percProxy[10] = \filter -> {|in, pan=0| Splay.ar(in, 0, 1, pan)};
 
-	~harmProxy[20] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
+	~percProxy[20]= \filter -> ~complexResFunc.value;
+
+	~harmProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
 
 
 	Tdef(\interaction).play;
 };
-
+{ComplexRes.ar(Pulse.ar(0.1,0.001,0.1),50+ 5000*SinOsc.ar(50),1)}.play;
 
 
 {
@@ -154,7 +171,6 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 }.fork;
 )
 
-~percProxy.stop
 
 
 
@@ -164,10 +180,10 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 
 
 
+~np = NodeProxy.audio(s,2).play
+~np.source = {PlayBuf.ar(1, b, loop:1)}
 
-
-
-
+~np[10]= \filter -> {arg in; XFade2.ar(in, ComplexRes.ar(in,SinOsc.kr(MouseX.kr(0.5,100)).range(200, 500),0.1), 0.95)}
 
 
 
@@ -200,20 +216,17 @@ b = Buffer.alloc(s, 512);
 
 (
 x = {
-	var sig, chain, onsets, pips, trigger;
+	var sig, chain, onsets, pips,freq, hasFreq,  trigger;
 
 	sig = SoundIn.ar(0);
 
 	chain = FFT(b, sig);
+	# freq, hasFreq = Pitch.kr(sig);
 
 	// - move the mouse left/right to change the threshold:
 	onsets = Onsets.kr(chain, MouseX.kr(0,1), \complex);
 
-	trigger= SendTrig.kr(onsets);
-
-	pips = Gendy1.ar(mul: EnvGen.kr(Env.perc(0.001, 0.1, 0.2), onsets));
-
-	Out.ar(0, ((sig * 0.1) + pips).dup);
+	trigger= SendTrig.kr(onsets, freq);
 }.play;
 )
 
@@ -501,4 +514,48 @@ s.waitForBoot{
 	*/
 }
 
+)
+
+
+
+~buf = Buffer.alloc(s, s.sampleRate * 5);
+
+(
+{
+    var trig, freq;
+    var dry, snd, phase, iois;
+    var cumulDelay;
+    var decayFactor, lpfCutoff, numEchoes, ioiScale, ioiDecayFactor;
+
+    // play with these!
+    decayFactor = 0.65;
+    lpfCutoff = 500;
+    numEchoes = 16;
+    ioiScale = 0.4;
+    ioiDecayFactor = 0.75;
+
+    // example input -- you can substitute other stuff here
+    trig = Dust.ar(1);
+    dry = Pulse.ar(100 * TIRand.ar(1, 12, trig));
+    dry = dry * Decay2.ar(trig, 0.01, 0.2);
+
+    phase = DelTapWr.ar(~buf, dry);
+    iois = Array.geom(numEchoes, ioiScale, ioiDecayFactor);
+    cumulDelay = iois.sum;
+    (cumulDelay > ~buf.duration).if {
+        Error("use a larger buffer").throw;
+    };
+    snd = Silent.ar;
+    iois.reverse.do { |ioi|
+        snd = (snd + DelTapRd.ar(~buf, phase, cumulDelay, interp: 4)) * decayFactor;
+        // one-pole lowpass -- LPF was too aggressive
+        snd = OnePole.ar(snd, lpfCutoff / SampleRate.ir);
+        cumulDelay = cumulDelay - ioi;
+    };
+    snd = snd + dry;
+
+    snd * 0.5!2;
+}.play;
+
+// contributors so far: Nathan Ho
 )

@@ -32,14 +32,15 @@
 //~skeleton[\head]
 (
 //function that reads osc values with inputs for name and a variable to store the value
+// Symbol (Number) -> OSCdef
 ~oscReader=
 {
 	|sourceName, port=7000|
-//functions that grab OSC from certain addresses
-OSCdef(
-	sourceName,
-	{
-		arg msg, time, addr, port;
+	//functions that grab OSC from certain addresses
+	OSCdef(
+		sourceName,
+		{
+			arg msg, time, addr, port;
 
 			//adds the message comming form OSC to the dictionary ~skeleton
 			~skeleton[sourceName]= msg;
@@ -48,13 +49,13 @@ OSCdef(
 			//auto-calibration
 			if(sourceName != '/People',
 				{
-		case
-		{msg[1] > ~calibration[sourceName][\xhi]} {~calibration[sourceName][\xhi]= msg[1]}
-		{msg[1] < ~calibration[sourceName][\xlo]} {~calibration[sourceName][\xlo] = msg[1]}
-		{msg[2] > ~calibration[sourceName][\yhi]} {~calibration[sourceName][\yhi] = msg[2]}
-		{msg[2] < ~calibration[sourceName][\ylo]} {~calibration[sourceName][\ylo] = msg[2]}
-		{msg[3] > ~calibration[sourceName][\zhi]} {~calibration[sourceName][\zhi] = msg[3]}
-		{msg[3] < ~calibration[sourceName][\zlo]} {~calibration[sourceName][\zlo]= msg[3]}
+					case
+					{msg[1] > ~calibration[sourceName][\xhi]} {~calibration[sourceName][\xhi]= msg[1]}
+					{msg[1] < ~calibration[sourceName][\xlo]} {~calibration[sourceName][\xlo] = msg[1]}
+					{msg[2] > ~calibration[sourceName][\yhi]} {~calibration[sourceName][\yhi] = msg[2]}
+					{msg[2] < ~calibration[sourceName][\ylo]} {~calibration[sourceName][\ylo] = msg[2]}
+					{msg[3] > ~calibration[sourceName][\zhi]} {~calibration[sourceName][\zhi] = msg[3]}
+					{msg[3] < ~calibration[sourceName][\zlo]} {~calibration[sourceName][\zlo]= msg[3]}
 				},
 				{
 					if(msg[1].min(1) != ~previousPeople,
@@ -65,10 +66,10 @@ OSCdef(
 					~previousPeople = msg[1].min(1);
 			});
 
-	},
-	sourceName,
-	nil,
-	port
+		},
+		sourceName,
+		nil,
+		port
 )}
 
 );
@@ -83,15 +84,42 @@ OSCdef(
 //posts the value of the whole dictionary twice a second
 
 Tdef(\valuePoster,
-{
-	inf.do{
-		~skeleton.collect({ |part| part.postln });
-		0.5.wait;
-	}
+	{
+		inf.do{
+			~skeleton.collect({ |part| part.postln });
+			0.5.wait;
+		}
 });
 
 //Tdef(\valuePoster).play
 
+//helps with mapping sounds from the skeleton dictionary to an argument in the sound.
+//mapFunc : Symbol String Number Number  Boolean-> Number
+// location symbol, axis, lowest value expected, highest value expected, wether value should be mapped linearly.
+~mapFunc = {
+	|part, axis, lowVal, highVal, linear=true|
+	var locArray;
+	switch(axis,
+		"x", {locArray=1},
+		"y", {locArray=2},
+		"z", {locArray=3});
+
+
+	if(linear,{
+		~skeleton[part][locArray].linlin(
+			~calibration[part][(axis ++ "lo").asSymbol],
+			~calibration[part][(axis ++ "hi").asSymbol],
+			lowVal,
+			highVal)},
+	{
+		~skeleton[part][locArray].linexp(
+			~calibration[part][(axis ++ "lo").asSymbol],
+			~calibration[part][(axis ++ "hi").asSymbol],
+			lowVal,
+			highVal)}
+	);
+
+};
 
 //Tdefs that help interact with the soud
 
@@ -100,53 +128,36 @@ Tdef(\interaction,
 		inf.do{
 			|i|
 
-			~harmProxy.set(\amp,
-				//info coming from OSCdefs
-				~skeleton['/Right_Hand'][2].linlin(
-					//mape low and high ranges given by calibration to desired values
-					~calibration['/Right_Hand'][\ylo],
-					~calibration['/Right_Hand'][\yhi],
-					0,
-					20),
-				\pan,
-				~skeleton['/Right_Hand'][1].linlin(
-					//mape low and high ranges given by calibration to desired values
-					~calibration['/Right_Hand'][\xlo],
-					~calibration['/Right_Hand'][\xhi],
-					-1,
-					1),
-				\mix,
-				~skeleton['/Right_Hand'][3].linlin(
-					//mape low and high ranges given by calibration to desired values
-					~calibration['/Right_Hand'][\zlo],
-					~calibration['/Right_Hand'][\zhi],
-					0,
-					1)
+			~harmProxy.set(
+				\amp, ~mapFunc.value('/Right_Hand', "y", 0, 5),
+				\pan, ~mapFunc.value('/Right_Hand', "x", -1, 1),
+				\mix, ~mapFunc.value('/Right_Hand', "z", 0.001, 1, false),//false makes it exponential
+
+				//Knee
+				\mixMod, ~mapFunc.value('/Right_Knee', "y", 0.8, 1),
+				\modSpeed, ~mapFunc.value('/Right_Knee', "x", 30, 500),
+				\modLoRange, ~mapFunc.value('/Right_Knee', "z", 30, 500),
+
+				//Foot
+				\modHiMul, ~mapFunc.value('/Right_Foot', "x", 1, 3.5)
+				\resonanceDecay, ~mapFunc.value('/Right_Foot', "y", 0.1, 1)
 
 			);
 
 
-
 			~percProxy.set(\amp,
-				~skeleton['/Left_Hand'][2].linlin(
-					~calibration['/Left_Hand'][\ylo],
-					~calibration['/Left_Hand'][\yhi],
-					0,
-					20),
-				\pan,
-				~skeleton['/Left_Hand'][1].linlin(
-					//mape low and high ranges given by calibration to desired values
-					~calibration['/Left_Hand'][\xlo],
-					~calibration['/Left_Hand'][\xhi],
-					-1,
-					1),
-				\mix,
-				~skeleton['/Left_Hand'][3].linlin(
-					//mape low and high ranges given by calibration to desired values
-					~calibration['/Left_Hand'][\zlo],
-					~calibration['/Left_Hand'][\zhi],
-					0,
-					1)
+				\amp, ~mapFunc.value('/Left_Hand', "y", 0, 5),
+				\pan, ~mapFunc.value('/Left_Hand', "x", -1, 1),
+				\mix, ~mapFunc.value('/Left_Hand', "z", 0.001, 1, false),//false makes it exponential
+
+				//Knee
+				\mixMod, ~mapFunc.value('/Left_Knee', "y", 0.8, 1),
+				\modSpeed, ~mapFunc.value('/Left_Knee', "x", 30, 500),
+				\modLoRange, ~mapFunc.value('/Left_Knee', "z", 30, 500),
+
+				//Foot
+				\modHiMul, ~mapFunc.value('/Left_Foot', "x", 1, 3.5),
+				\resonanceDecay, ~mapFunc.value('/Left_Foot', "y", 0.1, 1)
 			);
 
 
@@ -155,8 +166,3 @@ Tdef(\interaction,
 	}
 )
 )
-
-
-
-//check calibration values
-~calibration.collect({ |i| i.collect({ |in| in.postln})})

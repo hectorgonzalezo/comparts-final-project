@@ -101,10 +101,10 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 ~playerFunc = {
 
 	~harmProxy.source ={
-		|noiseSpd =1, amp =1|
+		|noiseSpd =1, amp =1, rate=1|
 
 		BufRd.ar(1, ~harmBuf,
-			Phasor.ar(0,1,
+			Phasor.ar(0,rate,
 				BufRd.kr(1, ~harmSliceBuf,
 					LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~harmSliceBuf) -noiseSpd), 0, 2),
 				BufRd.kr(1, ~harmSliceBuf,
@@ -122,7 +122,7 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 	~harmProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
 
 	~percProxy.source ={
-		|noiseSpd =1, amp =1|
+		|noiseSpd =1, amp =1, rate=1|
 
 		BufRd.ar(1, ~percBuf,
 			Phasor.ar(0,1,
@@ -177,14 +177,6 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 
 
 
-
-
-
-
-~np = NodeProxy.audio(s,2).play
-~np.source = {PlayBuf.ar(1, b, loop:1)}
-
-~np[10]= \filter -> {arg in; XFade2.ar(in, ComplexRes.ar(in,SinOsc.kr(MouseX.kr(0.5,100)).range(200, 500),0.1), 0.95)}
 
 
 

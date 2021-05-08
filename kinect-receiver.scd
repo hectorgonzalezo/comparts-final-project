@@ -7,6 +7,10 @@
 
 (// stores the values of the whole skeleton
 ~skeleton =Dictionary.new;
+//To calculate the slope
+~skeletonPrev =Dictionary.new;
+~skeletonSlopes =Dictionary.new;
+
 ~partsSkeleton = ['/Head', '/Neck', '/Torso', '/Right_Shoulder', '/Left_Shoulder', '/Right_Elbow', '/Left_Elbow', '/Right_Hand', '/Left_Hand', '/Right_Knee', '/Left_Knee', '/Right_Foot', '/Left_Foot', '/People'];
 
 
@@ -27,6 +31,7 @@
 			{ part.add(axis -> 0)})
 	})
 });
+
 //example of use, calibration of low bundary in x axis on head
 //~calibration['/Head'][\xlo]
 //~skeleton[\head]
@@ -55,7 +60,23 @@
 					{msg[2] > ~calibration[sourceName][\yhi]} {~calibration[sourceName][\yhi] = msg[2]}
 					{msg[2] < ~calibration[sourceName][\ylo]} {~calibration[sourceName][\ylo] = msg[2]}
 					{msg[3] > ~calibration[sourceName][\zhi]} {~calibration[sourceName][\zhi] = msg[3]}
-					{msg[3] < ~calibration[sourceName][\zlo]} {~calibration[sourceName][\zlo]= msg[3]}
+					{msg[3] < ~calibration[sourceName][\zlo]} {~calibration[sourceName][\zlo]= msg[3]};
+
+
+
+					~skeletonSlopes[sourceName]= Array.new(3);
+
+					//start reading slopes only after second iteration
+					if(~skeletonPrev[sourceName].notNil,
+						{
+					//insert the slopes of adjacent values in reading skeleton data
+					[1, 2, 3].do{|i|
+						~skeletonSlopes[sourceName] =~skeletonSlopes[sourceName].add(
+									(~skeleton[sourceName][i] - ~skeletonPrev[sourceName][i]));
+
+					};});
+					//stores the value to compare with next one in order to determine slope
+					~skeletonPrev[sourceName]= msg;
 				},
 				{
 					if(msg[1].min(1) != ~previousPeople,
@@ -65,6 +86,7 @@
 					});
 					~previousPeople = msg[1].min(1);
 			});
+
 
 		},
 		sourceName,
@@ -86,8 +108,10 @@
 Tdef(\valuePoster,
 	{
 		inf.do{
-			~skeleton.collect({ |part| part.postln });
-			0.5.wait;
+			//~skeleton.collect({ |part| part.postln });
+			//~skeletonSlopes.collect({ |part| part.postln });
+			~skeletonSlopes['/Torso'][2].postln;
+			0.1.wait;
 		}
 });
 
@@ -121,6 +145,8 @@ Tdef(\valuePoster,
 
 };
 
+
+
 //Tdefs that help interact with the soud
 
 Tdef(\interaction,
@@ -141,7 +167,11 @@ Tdef(\interaction,
 
 				//Foot
 				\modHiMul, ~mapFunc.value('/Right_Foot', "x", 1, 3.5),
-				\resonanceDecay, ~mapFunc.value('/Right_Foot', "y", 0.1, 1)
+				\resonanceDecay, ~mapFunc.value('/Right_Foot', "y", 0.1, 1),
+
+
+				//Torso
+				\rate, 1 + (~skeletonSlopes['/Torso'][2] *10)
 
 			);
 
@@ -154,12 +184,15 @@ Tdef(\interaction,
 
 				//Knee
 				\mixMod, ~mapFunc.value('/Left_Knee', "y", 0.8, 1),
-				\modSpeed, ~mapFunc.value('/Left_Knee', "x", 30, 500),
+				\modSpeed, ~mapFunc.value('/Left_Knee', "x", 500, 30),
 				\modLoRange, ~mapFunc.value('/Left_Knee', "z", 30, 500),
 
 				//Foot
-				\modHiMul, ~mapFunc.value('/Left_Foot', "x", 1, 3.5),
-				\resonanceDecay, ~mapFunc.value('/Left_Foot', "y", 0.1, 1)
+				\modHiMul, ~mapFunc.value('/Left_Foot', "x", 3.5, 1),
+				\resonanceDecay, ~mapFunc.value('/Left_Foot', "y", 0.1, 1),
+
+				//Torso
+				\rate, 1 + (~skeletonSlopes['/Torso'][2] *10)
 			);
 
 
@@ -168,3 +201,4 @@ Tdef(\interaction,
 	}
 )
 )
+

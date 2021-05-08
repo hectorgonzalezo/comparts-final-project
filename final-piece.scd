@@ -282,10 +282,6 @@ s.reboot;
 Window.closeAll;
 s.waitForBoot{
 
-
-
-
-
 	b = Buffer.alloc(s, s.sampleRate * 5, 1);
 
 	~micBus = Bus.audio(s,1);
@@ -323,7 +319,7 @@ s.waitForBoot{
 
 	SynthDef(\player, { |volIn= 0.2, fadeT =5, gateWhich=0, dens=20, baseDur=0.1, durRand=1, buf=0,
 		rate=1, pos=0,
-		grainEnv=(-1), sync= 1, pan=0, panRand=0, rateRand =1, gate=1, atk=1, rel=1, amp1=0.5, amp2=0.5, vol=1, out=0, ptrBus=0, ptrSampleDelay=20000, ptrRandSamples=5000, minPtrDelay=1000, fadeCurve = (-3)|
+		grainEnv=(-1), sync= 1, pan=0, panRand=0, rateRand =1, gate=1, atk=1, rel=1, amp1=0.5, amp2=0.5, vol=1, out=0, ptrBus=0, ptrSampleDelay=20000, ptrRandSamples=5000, minPtrDelay=1000, fadeCurve = (-3), ptrRandSpeed=100|
 
 		var sig, env, densCtrl, rateCtrl, posCtrl, panCtrl, ptr, ptrRand, totalDelay, durCtrl, maxGrainDur, sig1, player, which;
 
@@ -339,9 +335,9 @@ s.waitForBoot{
 
 		panCtrl = pan + LFNoise1.kr(100).bipolar(panRand);
 
-		ptrRand = LFNoise1.ar(100).bipolar(ptrRandSamples);
+		ptrRand = LFNoise1.ar(ptrRandSpeed).bipolar(ptrRandSamples);
 
-		totalDelay = max(ptrSampleDelay - ptrRand, minPtrDelay);
+		totalDelay = max(ptrSampleDelay  - ptrRand, minPtrDelay);
 
 		ptr = In.ar(ptrBus, 1);
 		ptr = ptr - ptrSampleDelay;
@@ -380,7 +376,6 @@ s.waitForBoot{
 	~granGrp = Group.after(~recGrp);
 
 
-
 	Synth(\mic, [\in, 0, \out, ~micBus], ~micGrp);
 	Synth(\ptr, [\buf, b, \out, ~ptrBus],~ptrGrp);
 	Synth(\rec, [\ptrIn, ~ptrBus, \micIn, ~micBus, \buf, b], ~recGrp);
@@ -389,180 +384,64 @@ s.waitForBoot{
 	s.sync;
 	b.zero;
 
-
+	~sounds = Array.newClear(8);
 	//plays 5 instances of the Synth, these are the main sounds
-	~g = 5.collect({
+8.collect({
 		arg n;
-		Synth(\player, [
 
-			\amp2, 0.dbamp,
+		~sounds[n] =Synth(\player, [
+			\amp, 1/16,
+			\amp2, 0.5,
 			\buf, b,
 			\out, 0,
 			\atk, 1,
-			\rel, 2,
+			\rel, 10,
 			\gate, 1,
-			\sync, 1,
-			\dens, exprand(20,60),
+			\sync, [0,1].wchoose([0.2, 0.8]),
+			\dens, exprand(5,100),
 			\baseDur, 0.05,
 			\durRand, 1.5,
-			\rate, ((0..12)*(-1)).choose.midiratio,
+			\rate, ((0..12)*([-1,1].wchoose([0.7, 0.3]))).choose.midiratio,
 			\rateRand, 1.midiratio,
-			\pan, n.linlin(0, 4, -0.5, 0.5),
+			\pan, rrand(-0.5, 0.5),
 			\panRand, 0.5,
 			\grainEnv, -1,
 			\ptrBus, ~ptrBus,
-			\ptrSampleDelay, n.linlin(0,4,20000,s.sampleRate*2),
-			\ptrRandSamples, 10000,
+			\ptrSampleDelay, n.linlin(0,8,1000,s.sampleRate*2) * rrand(0.8, 1.2),
+			\ptrRandSpeed, 10,
+			\ptrRandSamples, 1000,
 			\minPtrDelay, 1000,
 
 			\fadeT, rrand(1.0, 5.0),
-			\fadeCurve, rrand(-2.0, -3.0)
+			\fadeCurve, rrand(-2.0, -3.0),
+
+			\gateWhich, 1
 		], ~granGrp
 		);
 	});
-	//0 no granulation, 1 granulation
-	~granGrp.set(\gateWhich, 1);
-
-	//variables for use of task below
-	~lastSound = ~sound;
-	~soundArray= Array.newClear;
-	~soundAv = 0;
-	~freeze = false;
 
 
-
-	//Create GUI to inform about sound levels
-
-
-	~gui = Window("Sound Level", Rect(400, 400, 500, 300));
-
-	~currentSound = StaticText(~gui, Rect(100, 30, 400, 75))
-	.string_("Current Sound : " ++~sound.asString)
-	.stringColor_(Color.blue)
-	.font_(Font("Candara", 30, true));
-
-
-	~averageSound = StaticText(~gui, Rect(25, 150, 450,75))
-	.string_("Average Sound :" ++~soundAv.asString)
-	.stringColor_(Color.red)
-	.font_(Font("Candara", 30, true));
-
-
-	~gui.front;
-
-	s.sync;
-
-
-
-	/*
-
-	//changes sound in real time according to data received by sensors
-	Task({
-	2.wait;
-	inf.do{
-
-
-
-	//freezes sound if sound is loud enough and movement is detected
-	//also changes density and synchronous/asynchronous values in granulator
-	if(((~sound >= (~soundAv)) && (~motion == 1) && (~freeze == false) && (0.004.coin)),
-	{
-	~ptrGrp.set(\rate, 1);
-	~granGrp.set(\dens, {exprand(20,60)});
-	[~granGrp.set(\sync, 1),~g.collect({|n| n.set(\sync, {[0, 1].choose})})].choose;
-	"freeze".postln;
-	~freeze = true;
-
-	//sends output to GUI
-	{~currentSound.string_("Current Sound : " ++~sound.asString).stringColor_(Color.green)}.defer;
-	h
-	},
-	{
-	//sends output to GUI
-	{~currentSound.string_("Current Sound : " ++~sound.asString).stringColor_(Color.blue)}.defer;
-	}
-	);
-
-
-	//starts real time granulator if motion is detected
-	~granGrp.set(\gateWhich, ~motion);
-
-	//~motion.postln;
-
-	//~sound.postln;
-
-	//if no motion is detected and sound is frozen, unfreeze it
-	if((~motion == 0) && (~freeze == true),
-	{
-	{~ptrGrp.set(\rate, 1);
-	"unfreeze".postln;
-	}.defer(1);
-	~freeze = false;
-	});
-
-
-	//variable to compare previous sound volume
-	~lastSound = ~sound;
-
-	//variable that averages sound pressure values over time
-	~soundArray = ~soundArray++~sound;
-	~soundAv = ~soundArray.sum/~soundArray.size;
-
-	//changes GUI values
-	{~currentSound.string_("Current Sound : " ++~sound.asString)}.defer;
-	{~averageSound.string_("Average Sound :" ++~soundAv.round(0.001).asString)}.defer;
-
-	0.02.wait;
-	}
-
-	}
-	).play;
-
-	*/
 }
 
 )
 
+~granGrp.set(\gate, 0)
 
-
-~buf = Buffer.alloc(s, s.sampleRate * 5);
 
 (
-{
-    var trig, freq;
-    var dry, snd, phase, iois;
-    var cumulDelay;
-    var decayFactor, lpfCutoff, numEchoes, ioiScale, ioiDecayFactor;
+~sounds.collect({|synth, n| synth.set(\amp, 1/16,
 
-    // play with these!
-    decayFactor = 0.65;
-    lpfCutoff = 500;
-    numEchoes = 16;
-    ioiScale = 0.4;
-    ioiDecayFactor = 0.75;
+			\sync, [0,1].wchoose([0.2, 0.8]),
+			\dens, exprand(5,100),
+	\rate, ((0..12)*([-1,1].wchoose([0.7, 0.3]))).choose.midiratio,
+			\rateRand, 1.midiratio,
+			\pan, rrand(-0.5, 0.5),
+	\ptrSampleDelay, n.linlin(0,8,1000,s.sampleRate*2) * rrand(0.8,1.2),
+			\ptrRandSpeed, 10,
+			\ptrRandSamples, 1000,
+			\minPtrDelay, 1000,
 
-    // example input -- you can substitute other stuff here
-    trig = Dust.ar(1);
-    dry = Pulse.ar(100 * TIRand.ar(1, 12, trig));
-    dry = dry * Decay2.ar(trig, 0.01, 0.2);
-
-    phase = DelTapWr.ar(~buf, dry);
-    iois = Array.geom(numEchoes, ioiScale, ioiDecayFactor);
-    cumulDelay = iois.sum;
-    (cumulDelay > ~buf.duration).if {
-        Error("use a larger buffer").throw;
-    };
-    snd = Silent.ar;
-    iois.reverse.do { |ioi|
-        snd = (snd + DelTapRd.ar(~buf, phase, cumulDelay, interp: 4)) * decayFactor;
-        // one-pole lowpass -- LPF was too aggressive
-        snd = OnePole.ar(snd, lpfCutoff / SampleRate.ir);
-        cumulDelay = cumulDelay - ioi;
-    };
-    snd = snd + dry;
-
-    snd * 0.5!2;
-}.play;
-
-// contributors so far: Nathan Ho
+			\fadeT, rrand(1.0, 5.0),
+	\fadeCurve, rrand(-2.0, -3.0))})
 )
+

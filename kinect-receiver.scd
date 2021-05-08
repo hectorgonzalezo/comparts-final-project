@@ -1,6 +1,6 @@
 
 /////////////////////////////////////
-//////////// Remember to change the format in ni-mate from Head to /Head!!!!
+//////////// Remember to change the format in ni-mate from Head to /Head  !!!!
 //////////////////////////////////////////////
 
 

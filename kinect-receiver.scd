@@ -156,7 +156,7 @@ Tdef(\interaction,
 
 			~harmProxy.set(
 				//Head
-				\cutoffFreq, ~mapFunc.value('/Head', "y", 400, 10000, false),
+				\cutoffFreq, ~mapFunc.value('/Head', "y", 400, 10000),
 				\rq, ~mapFunc.value('/Head', "z", 1, 0.01),
 
 				//Torso
@@ -193,14 +193,14 @@ Tdef(\interaction,
 			},
 				{
 					~harmProxy.set(//shoulder
-						\delayTime,  0)
+						\delayTime,  1)
 				}
 			);
 
 
 			~percProxy.set(
 				//Head
-				\cutoffFreq, ~mapFunc.value('/Head', "y", 500, 15000, false),
+				\cutoffFreq, ~mapFunc.value('/Head', "y", 500, 15000),
 				\rq, ~mapFunc.value('/Head', "z", 1, 0.01),
 
 				//Torso
@@ -232,11 +232,11 @@ Tdef(\interaction,
 			},
 				{
 					~percProxy.set(//shoulder
-						\delayTime,  0)
+						\delayTime,  1)
 				});
 
 
-			0.1.wait;
+			0.2.wait;
 		}
 	}
 )

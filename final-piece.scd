@@ -21,7 +21,7 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 			ComplexRes.ar(
 				in,
 				SinOsc.kr(modSpeed).range(modLoRange, modLoRange*modHiMul),
-				0.1),
+				resonanceDecay),
 			mixMod)};
 
 ~harmProxy = NodeProxy.audio(s, 2).play;
@@ -120,7 +120,7 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 
 	~harmProxy[23] = \filter -> {|in, mix=0, delayTime=0.2, decayTime=1| CombC.ar(in, 1, delayTime.lag(0.1), decayTime)};
 
-	~harmProxy[25] = \filter -> {|in, cutoffFreq=5000, rq=1| RHPF.ar(in, cutoffFreq, rq)};
+	~harmProxy[25] = \filter -> {|in, cutoffFreq=5000, rq=1| RLPF.ar(in, cutoffFreq, rq)};
 
 	~harmProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
 
@@ -149,7 +149,7 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 
 	~percProxy[23] = \filter -> {|in, mix=0, delayTime=0.2, decayTime=1| CombC.ar(in, 1, delayTime.lag(0.1), decayTime)};
 
-	~percProxy[25] = \filter -> {|in, cutoffFreq=5000, rq=1| RHPF.ar(in, cutoffFreq, rq)};
+	~percProxy[25] = \filter -> {|in, cutoffFreq=5000, rq=1| RLPF.ar(in, cutoffFreq, rq)};
 
 	~percProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
 

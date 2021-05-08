@@ -116,15 +116,14 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 	~harmProxy[10] = \filter -> {|in, pan=0| Splay.ar(in, 0, 1, pan)};
 
 
-	~harmProxy[20]= \filter -> ~complexResFunc;
 
-	~harmProxy[23] = \filter -> {|in, mix=0, delayTime=0.2, decayTime=1| CombC.ar(in, 1, delayTime.lag(0.1), decayTime)};
+	~harmProxy[15] = \filter -> {|in, mix=0, delayTime=0.2, decayTime=1| CombC.ar(in, 1, delayTime.lag(0.1), decayTime)};
 
-	~harmProxy[25] = \filter -> {|in, cutoffFreq=5000, rq=1| RLPF.ar(in, cutoffFreq, rq)};
+	~harmProxy[20] = \filter -> {|in, cutoffFreq=5000, rq=1| RLPF.ar(in, cutoffFreq, rq)};
+
+	~harmProxy[25]= \filter -> ~complexResFunc;
 
 	~harmProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
-
-
 
 
 
@@ -145,11 +144,11 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 	~percProxy[10] = \filter -> {|in, pan=0| Splay.ar(in, 0, 1, pan)};
 
 
-	~percProxy[20]= \filter -> ~complexResFunc;
+	~percProxy[15] = \filter -> {|in, mix=0, delayTime=0.2, decayTime=1| CombC.ar(in, 1, delayTime.lag(0.1), decayTime)};
 
-	~percProxy[23] = \filter -> {|in, mix=0, delayTime=0.2, decayTime=1| CombC.ar(in, 1, delayTime.lag(0.1), decayTime)};
+	~percProxy[20] = \filter -> {|in, cutoffFreq=5000, rq=1| RLPF.ar(in, cutoffFreq, rq)};
 
-	~percProxy[25] = \filter -> {|in, cutoffFreq=5000, rq=1| RLPF.ar(in, cutoffFreq, rq)};
+	~percProxy[25]= \filter -> ~complexResFunc;
 
 	~percProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
 

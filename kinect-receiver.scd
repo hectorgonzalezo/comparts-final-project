@@ -215,9 +215,9 @@ Tdef(\interaction,
 				\mix, ~mapFunc.value('/Left_Hand', "z", 0.001, 1, false),//false makes it exponential
 
 				//Knee
-				\mixMod, ~mapFunc.value('/Left_Knee', "y", 0.8, 1),
+				\mixMod, ~mapFunc.value('/Left_Knee', "y", 1, 0.8),
 				\modSpeed, ~mapFunc.value('/Left_Knee', "x", 500, 30),
-				\modLoRange, ~mapFunc.value('/Left_Knee', "z", 30, 500),
+				\modLoRange, ~mapFunc.value('/Left_Knee', "z", 500, 30),
 
 				//Foot
 				\modHiMul, ~mapFunc.value('/Left_Foot', "x", 3.5, 1),

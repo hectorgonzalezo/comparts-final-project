@@ -67,7 +67,7 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 			//slice harmonic sounds
 			Routine{
 				t = Main.elapsedTime;
-				FluidBufNoveltySlice.process(s,~harmBuf, indices: ~harmSliceBuf, threshold:0.4,filterSize: 4, minSliceLength: 8).wait;
+				FluidBufNoveltySlice.process(s,~harmBuf, indices: ~harmSliceBuf, threshold:0.4,filterSize: 1, minSliceLength: 32).wait;
 				(Main.elapsedTime - t).postln;
 			}.play;
 
@@ -75,7 +75,7 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 			//slice percusive sounds
 			Routine{
 				t = Main.elapsedTime;
-				FluidBufNoveltySlice.process(s,~percBuf, indices: ~percSliceBuf, threshold:0.4,filterSize: 4, minSliceLength: 8).wait;
+				FluidBufNoveltySlice.process(s,~percBuf, indices: ~percSliceBuf, threshold:0.4,filterSize: 1, minSliceLength: 32).wait;
 				(Main.elapsedTime - t).postln;
 			}.play;
 
@@ -104,41 +104,56 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 		|noiseSpd =1, amp =1, rate=1|
 
 		BufRd.ar(1, ~harmBuf,
-			Phasor.ar(0,rate,
-				BufRd.kr(1, ~harmSliceBuf,
+			Phasor.ar(0,rate.lag(0.1),
+				start: BufRd.kr(1, ~harmSliceBuf,
 					LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~harmSliceBuf) -noiseSpd), 0, 2),
-				BufRd.kr(1, ~harmSliceBuf,
+				end: BufRd.kr(1, ~harmSliceBuf,
 					LFNoise0.kr(noiseSpd).range(1, BufFrames.kr(~harmSliceBuf)), 0, 2),
-				BufRd.kr(1,~harmSliceBuf,
+				resetPos: BufRd.kr(1,~harmSliceBuf,
 					LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~harmSliceBuf) - 1), 0, 1)), 0, 2) * amp;
 	};
 
 	~harmProxy[10] = \filter -> {|in, pan=0| Splay.ar(in, 0, 1, pan)};
 
 
-
 	~harmProxy[20]= \filter -> ~complexResFunc;
 
+	~harmProxy[23] = \filter -> {|in, mix=0, delayTime=0.2, decayTime=1| CombC.ar(in, 1, delayTime.lag(0.1), decayTime)};
+
+	~harmProxy[25] = \filter -> {|in, cutoffFreq=5000, rq=1| RHPF.ar(in, cutoffFreq, rq)};
+
 	~harmProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
+
+
+
+
+
 
 	~percProxy.source ={
 		|noiseSpd =1, amp =1, rate=1|
 
 		BufRd.ar(1, ~percBuf,
-			Phasor.ar(0,1,
-				BufRd.kr(1, ~percSliceBuf,
-					LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~harmSliceBuf) -1), 0, 2),
-				BufRd.kr(1, ~harmSliceBuf,
-					LFNoise0.kr(noiseSpd).range(1, BufFrames.kr(~harmSliceBuf)), 0, 2),
-				BufRd.kr(1,~harmSliceBuf,
-					LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~harmSliceBuf) - 1), 0, 1)), 0, 2) * amp;
+			Phasor.ar(0,1.lag(0.1),
+				start: BufRd.kr(1, ~percSliceBuf,
+					LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~percSliceBuf) -1), 0, 2),
+				end: BufRd.kr(1, ~percSliceBuf,
+					LFNoise0.kr(noiseSpd).range(1, BufFrames.kr(~percSliceBuf)), 0, 2),
+				resetPos: BufRd.kr(1,~percSliceBuf,
+					LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~percSliceBuf) - 1), 0, 1)), 0, 2) * amp;
 	};
 
 	~percProxy[10] = \filter -> {|in, pan=0| Splay.ar(in, 0, 1, pan)};
 
+
 	~percProxy[20]= \filter -> ~complexResFunc;
 
-	~harmProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
+	~percProxy[23] = \filter -> {|in, mix=0, delayTime=0.2, decayTime=1| CombC.ar(in, 1, delayTime.lag(0.1), decayTime)};
+
+	~percProxy[25] = \filter -> {|in, cutoffFreq=5000, rq=1| RHPF.ar(in, cutoffFreq, rq)};
+
+	~percProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
+
+
 
 
 	Tdef(\interaction).play;

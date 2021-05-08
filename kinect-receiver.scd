@@ -155,6 +155,17 @@ Tdef(\interaction,
 			|i|
 
 			~harmProxy.set(
+				//Head
+				\cutoffFreq, ~mapFunc.value('/Head', "y", 400, 10000, false),
+				\rq, ~mapFunc.value('/Head', "z", 1, 0.01),
+
+				//Torso
+				\rate, 1 - (~skeletonSlopes['/Torso'][2] *10),
+
+				//shoulder
+				\decayTime, ~mapFunc.value('/Right_Shoulder', "x", 0.1, 2),
+
+
 				//hand
 				\amp, ~mapFunc.value('/Right_Hand', "y", 0, 5),
 				\pan, ~mapFunc.value('/Right_Hand', "x", -1, 1),
@@ -170,13 +181,34 @@ Tdef(\interaction,
 				\resonanceDecay, ~mapFunc.value('/Right_Foot', "y", 0.1, 1),
 
 
-				//Torso
-				\rate, 1 + (~skeletonSlopes['/Torso'][2] *10)
 
+
+			);
+
+			//add delay if slope is positive on right shoulder
+			if((~skeletonSlopes['/Right_Shoulder'][2].sign == 1 )&& (~skeletonSlopes['/Right_Shoulder'][2] >= 0.01),
+				{
+					~harmProxy.set(//shoulder
+						\delayTime,  (~skeletonSlopes['/Right_Shoulder'][2] *30))
+			},
+				{
+					~harmProxy.set(//shoulder
+						\delayTime,  0)
+				}
 			);
 
 
 			~percProxy.set(
+				//Head
+				\cutoffFreq, ~mapFunc.value('/Head', "y", 500, 15000, false),
+				\rq, ~mapFunc.value('/Head', "z", 1, 0.01),
+
+				//Torso
+				\rate, 1 - (~skeletonSlopes['/Torso'][2] *10),
+
+				//shoulder
+				\decayTime, ~mapFunc.value('/Left_Shoulder', "x", 2, 0.1),
+
 				//hand
 				\amp, ~mapFunc.value('/Left_Hand', "y", 0, 5),
 				\pan, ~mapFunc.value('/Left_Hand', "x", -1, 1),
@@ -191,12 +223,20 @@ Tdef(\interaction,
 				\modHiMul, ~mapFunc.value('/Left_Foot', "x", 3.5, 1),
 				\resonanceDecay, ~mapFunc.value('/Left_Foot', "y", 0.1, 1),
 
-				//Torso
-				\rate, 1 + (~skeletonSlopes['/Torso'][2] *10)
 			);
 
+			if((~skeletonSlopes['/Left_Shoulder'][2].sign == 1 )&& (~skeletonSlopes['/Left_Shoulder'][2] >= 0.01),
+				{
+					~percProxy.set(//shoulder
+						\delayTime,  (~skeletonSlopes['/Left_Shoulder'][2] *20))
+			},
+				{
+					~percProxy.set(//shoulder
+						\delayTime,  0)
+				});
 
-			0.2.wait;
+
+			0.1.wait;
 		}
 	}
 )

@@ -101,8 +101,6 @@
 
 
 
-
-
 	Tdef(\playGran,{
 	//plays 5 instances of the Synth, these are the main sounds
 8.collect({

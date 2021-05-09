@@ -168,7 +168,7 @@ Tdef(\interaction,
 
 
 				//hand
-				\amp, ~mapFunc.value('/Right_Hand', "y", 0, 10),
+				\amp, ~mapFunc.value('/Right_Hand', "y", 0, 7),
 				\pan, ~mapFunc.value('/Right_Hand', "x", -1, 1),
 				\mix, ~mapFunc.value('/Right_Hand', "z", 0.001, 1, false),//false makes it exponential
 
@@ -208,7 +208,7 @@ Tdef(\interaction,
 				\decayTime, ~mapFunc.value('/Left_Shoulder', "x", 2, 0.1),
 
 				//hand
-				\amp, ~mapFunc.value('/Left_Hand', "y", 0, 10),
+				\amp, ~mapFunc.value('/Left_Hand', "y", 0, 7),
 				\pan, ~mapFunc.value('/Left_Hand', "x", -1, 1),
 				\mix, ~mapFunc.value('/Left_Hand', "z", 0.001, 1, false),//false makes it exponential
 

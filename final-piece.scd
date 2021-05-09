@@ -1,15 +1,19 @@
-
 (
-
 s.freeAll;
 s.reboot;
 Window.closeAll;
 s.waitForBoot{
 	//load the file kinect code
 	"kinect-receiver.scd".resolveRelative.load;
+
 	//load code from beginning of the piece
 	"granular-beginning.scd".resolveRelative.load;
+	//start with zero people
 	~previousPerson = 0;
+
+	//how long to record performance after detectin person, low and high limits.
+	~recordingTime = {rrand(10, 20)};
+
 
 
 	SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
@@ -46,11 +50,10 @@ s.waitForBoot{
 				e = Buffer.new(s);
 				a=Synth(\recorder, [\bufnum, ~oboeBuf]);
 
-
 				///////////////////////////////////////////////////////////////////////////////////////
 				//This is the total time it will record the oboe performance before processing!!!!!1
 				///////////////////////////////////////////////////////////////////////////////////////
-				rrand(80, 120).wait;
+				~recordingTime.value.wait;
 
 
 				a.release;
@@ -109,7 +112,6 @@ s.waitForBoot{
 		}.fork
 	};
 
-
 	~playerFunc = {
 
 		~harmProxy.source ={
@@ -139,6 +141,8 @@ s.waitForBoot{
 
 		~harmProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
 
+		~harmProxy[100] = \filter -> {|in| Limiter.ar(in, 0.9)};
+
 
 
 
@@ -167,6 +171,8 @@ s.waitForBoot{
 		~percProxy[25]= \filter -> ~complexResFunc;
 
 		~percProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
+
+		~percProxy[100] = \filter -> {|in| Limiter.ar(in, 0.9)};
 
 
 		Tdef(\interaction).play;

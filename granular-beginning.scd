@@ -114,7 +114,7 @@
 			\buf, b,
 			\out, 0,
 			\atk, 1,
-			\rel, 10,
+			\rel, 15,
 			\gate, 1,
 			\sync, [0,1].wchoose([0.2, 0.8]),
 			\dens, exprand(5,100),

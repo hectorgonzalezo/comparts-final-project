@@ -1,7 +1,6 @@
 (
 s.freeAll;
 s.reboot;
-Window.closeAll;
 s.waitForBoot{
 	//load the file kinect code
 	"kinect-receiver.scd".resolveRelative.load;
@@ -194,7 +193,9 @@ s.waitForBoot{
 
 				//start second part, processing sounds
 				~processFunc.value;
-				"person detected".postln;
+
+				//print to GUI
+				{~infoText.string= "person detected"}.defer;
 
 
 
@@ -204,7 +205,8 @@ s.waitForBoot{
 			{(~people ==0) && (~previousPerson == 1)}
 			//tstop proxys
 			{[~harmProxy, ~percProxy].collect({ |i| i.source = nil});
-				"person out of range".postln;
+
+				{~infoText.string= "person out of range"}.defer;
 
 				Tdef(\interaction).stop;
 				//go back to beginning
@@ -217,5 +219,38 @@ s.waitForBoot{
 		}
 	}.fork;
 
-}
+};
+
+
+
+
+(
+Window.closeAll;
+
+~window = Window.new("Piece", 500@400);
+
+~guiButton = Button(~window, Rect(60, 20, 340, 200))
+.states_([
+	["finish", Color.black, Color.red],
+	["Finish", Color.white, Color.white]
+])
+.action_({ arg butt;
+	switch(butt.value,
+
+		1, {
+			Tdef(\playGran).stop;
+			~granGrp.set(\gate, 0);
+
+			[~harmProxy, ~percProxy].collect({ |i| i.source = nil});
+
+			Tdef(\interaction).stop;
+	})
+})
+.font_(Font("Helvetica", 50));
+
+~infoText = StaticText(~window, Rect(20, 150, 450, 350))
+.string_("hi")
+.font_(Font("Helvetica", 50));
+~window.front;
+)
 )

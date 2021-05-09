@@ -1,20 +1,26 @@
 
 (
-//load the file kinect code
-"kinect-receiver.scd".resolveRelative.load;
 
-~previousPerson = 0;
-
-
-SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
-	var input;
-	input = SoundIn.ar(0) *Linen.kr(gate, doneAction:2);
-	RecordBuf.ar(input, bufnum, doneAction:2, run:1, loop:0);
-}).add;
-
+s.freeAll;
+s.reboot;
+Window.closeAll;
+s.waitForBoot{
+	//load the file kinect code
+	"kinect-receiver.scd".resolveRelative.load;
+	//load code from beginning of the piece
+	"granular-beginning.scd".resolveRelative.load;
+	~previousPerson = 0;
 
 
-~complexResFunc = {
+	SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
+		var input;
+		input = SoundIn.ar(0) *Linen.kr(gate, doneAction:2);
+		RecordBuf.ar(input, bufnum, doneAction:2, run:1, loop:0);
+	}).add;
+
+
+
+	~complexResFunc = {
 		|in, mixMod, modSpeed= 200, modLoRange=200, modHiMul= 2, resonanceDecay=0.1|
 		XFade2.ar(
 			in,
@@ -24,424 +30,186 @@ SynthDef(\recorder, { arg out = 0, bufnum, run = 0, gate = 1;
 				resonanceDecay),
 			mixMod)};
 
-~harmProxy = NodeProxy.audio(s, 2).play;
-~harmProxy.fadeTime=5;
-~percProxy = NodeProxy.audio(s, 2).play;
-~percProxy.fadeTime=5;
+	~harmProxy = NodeProxy.audio(s, 2).play;
+	~harmProxy.fadeTime=5;
+	~percProxy = NodeProxy.audio(s, 2).play;
+	~percProxy.fadeTime=5;
 
-~processFunc = {
-	{
-		1.do{
-			Buffer.freeAll;
+	~processFunc = {
+		{
+			1.do{
 
-			~oboeBuf = Buffer.alloc(s, s.sampleRate*120, 1);
-			//start recording and restart bufers
-			~harmBuf = Buffer.new(s);
-			~percBuf = Buffer.new(s);
-			e = Buffer.new(s);
-			a=Synth(\recorder, [\bufnum, ~oboeBuf]);
-			rrand(5, 10).wait;
-			a.release;
-
-			2.wait;
-
-			//process the recording
-			Routine{
-				t = Main.elapsedTime;
-				FluidBufHPSS.process(s, ~oboeBuf, harmonic: ~harmBuf, percussive: ~percBuf).wait;
-				(Main.elapsedTime - t).postln;
-			}.play;
-
-			2.wait;
-
-			~harmBuf.query;
-			~percBuf.query;
-
-			1.wait;
-
-			~harmSliceBuf = Buffer.new(s);
-			~percSliceBuf = Buffer.new(s);
+				~oboeBuf = Buffer.alloc(s, s.sampleRate*120, 1);
+				//start recording and restart bufers
+				~harmBuf = Buffer.new(s);
+				~percBuf = Buffer.new(s);
+				e = Buffer.new(s);
+				a=Synth(\recorder, [\bufnum, ~oboeBuf]);
 
 
-
-			//slice harmonic sounds
-			Routine{
-				t = Main.elapsedTime;
-				FluidBufNoveltySlice.process(s,~harmBuf, indices: ~harmSliceBuf, threshold:0.4,filterSize: 1, minSliceLength: 32).wait;
-				(Main.elapsedTime - t).postln;
-			}.play;
+				///////////////////////////////////////////////////////////////////////////////////////
+				//This is the total time it will record the oboe performance before processing!!!!!1
+				///////////////////////////////////////////////////////////////////////////////////////
+				rrand(80, 120).wait;
 
 
-			//slice percusive sounds
-			Routine{
-				t = Main.elapsedTime;
-				FluidBufNoveltySlice.process(s,~percBuf, indices: ~percSliceBuf, threshold:0.4,filterSize: 1, minSliceLength: 32).wait;
-				(Main.elapsedTime - t).postln;
-			}.play;
+				a.release;
 
-			1.wait;
+				2.wait;
 
-			//check the number of slices: it is the number of frames in the transBuf minus the boundary index.
-			~harmSliceBuf.query;
-			~percSliceBuf.query;
+				//process the recording
+				Routine{
+					t = Main.elapsedTime;
+					FluidBufHPSS.process(s, ~oboeBuf, harmonic: ~harmBuf, percussive: ~percBuf).wait;
+					(Main.elapsedTime - t).postln;
+				}.play;
 
-			0.5.wait;
+				2.wait;
 
-			//start playing the sounds
-			~playerFunc.value;
+				~harmBuf.query;
+				~percBuf.query;
+
+				1.wait;
+
+				~harmSliceBuf = Buffer.new(s);
+				~percSliceBuf = Buffer.new(s);
 
 
 
+				//slice harmonic sounds
+				Routine{
+					t = Main.elapsedTime;
+					FluidBufNoveltySlice.process(s,~harmBuf, indices: ~harmSliceBuf, threshold:0.4,filterSize: 1, minSliceLength: 32).wait;
+					(Main.elapsedTime - t).postln;
+				}.play;
 
-		}
-	}.fork
-};
+
+				//slice percusive sounds
+				Routine{
+					t = Main.elapsedTime;
+					FluidBufNoveltySlice.process(s,~percBuf, indices: ~percSliceBuf, threshold:0.4,filterSize: 1, minSliceLength: 32).wait;
+					(Main.elapsedTime - t).postln;
+				}.play;
+
+				1.wait;
+
+				//check the number of slices: it is the number of frames in the transBuf minus the boundary index.
+				~harmSliceBuf.query;
+				~percSliceBuf.query;
+
+				0.5.wait;
+
+				//start playing the sounds
+				~playerFunc.value;
 
 
-~playerFunc = {
 
-	~harmProxy.source ={
-		|noiseSpd =1, amp =1, rate=1|
 
-		BufRd.ar(1, ~harmBuf,
-			Phasor.ar(0,rate.lag(0.1),
-				start: BufRd.kr(1, ~harmSliceBuf,
-					LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~harmSliceBuf) -noiseSpd), 0, 2),
-				end: BufRd.kr(1, ~harmSliceBuf,
-					LFNoise0.kr(noiseSpd).range(1, BufFrames.kr(~harmSliceBuf)), 0, 2),
-				resetPos: BufRd.kr(1,~harmSliceBuf,
-					LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~harmSliceBuf) - 1), 0, 1)), 0, 2) * amp;
+			}
+		}.fork
 	};
 
-	~harmProxy[10] = \filter -> {|in, pan=0| Splay.ar(in, 0, 1, pan)};
 
+	~playerFunc = {
 
+		~harmProxy.source ={
+			|noiseSpd =1, amp =1, rate=1|
 
-	~harmProxy[15] = \filter -> {|in, mix=0, delayTime=0.2, decayTime=1| CombC.ar(in, 1, delayTime.lag(0.1), decayTime)};
-
-	~harmProxy[20] = \filter -> {|in, cutoffFreq=5000, rq=1| RLPF.ar(in, cutoffFreq, rq)};
-
-	~harmProxy[25]= \filter -> ~complexResFunc;
-
-	~harmProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
-
-
-
-
-	~percProxy.source ={
-		|noiseSpd =1, amp =1, rate=1|
-
-		BufRd.ar(1, ~percBuf,
-			Phasor.ar(0,1.lag(0.1),
-				start: BufRd.kr(1, ~percSliceBuf,
-					LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~percSliceBuf) -1), 0, 2),
-				end: BufRd.kr(1, ~percSliceBuf,
-					LFNoise0.kr(noiseSpd).range(1, BufFrames.kr(~percSliceBuf)), 0, 2),
-				resetPos: BufRd.kr(1,~percSliceBuf,
-					LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~percSliceBuf) - 1), 0, 1)), 0, 2) * amp;
-	};
-
-	~percProxy[10] = \filter -> {|in, pan=0| Splay.ar(in, 0, 1, pan)};
-
-
-	~percProxy[15] = \filter -> {|in, mix=0, delayTime=0.2, decayTime=1| CombC.ar(in, 1, delayTime.lag(0.1), decayTime)};
-
-	~percProxy[20] = \filter -> {|in, cutoffFreq=5000, rq=1| RLPF.ar(in, cutoffFreq, rq)};
-
-	~percProxy[25]= \filter -> ~complexResFunc;
-
-	~percProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
-
-
-
-
-	Tdef(\interaction).play;
-};
-
-
-{
-	inf.do{
-		|i|
-
-		//if one person appears
-		case
-		{(~people ==1) && (~previousPerson == 0)}
-		//this will start the process of recording and processing the sound
-		  {~processFunc.value;
-			"person detected".postln;
-		}
-		//if it disappears from range
-		{(~people ==0) && (~previousPerson == 1)}
-		//tstop proxys
-		  {[~harmProxy, ~percProxy].collect({ |i| i.source = nil});
-			"person out of range".postln;
-			Tdef(\interaction).stop;
+			BufRd.ar(1, ~harmBuf,
+				Phasor.ar(0,rate.lag(0.1),
+					start: BufRd.kr(1, ~harmSliceBuf,
+						LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~harmSliceBuf) -noiseSpd), 0, 2),
+					end: BufRd.kr(1, ~harmSliceBuf,
+						LFNoise0.kr(noiseSpd).range(1, BufFrames.kr(~harmSliceBuf)), 0, 2),
+					resetPos: BufRd.kr(1,~harmSliceBuf,
+						LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~harmSliceBuf) - 1), 0, 1)),
+				0,
+				2) * amp;
 		};
 
+		~harmProxy[10] = \filter -> {|in, pan=0| Splay.ar(in, 0, 1, pan)};
 
 
-		~previousPerson = ~people;
-		1.wait;
-	}
-}.fork;
-)
 
+		~harmProxy[15] = \filter -> {|in, mix=0, delayTime=0.2, decayTime=1| CombC.ar(in, 1, delayTime.lag(0.1), decayTime)};
 
+		~harmProxy[20] = \filter -> {|in, cutoffFreq=5000, rq=1| RLPF.ar(in, cutoffFreq, rq)};
 
+		~harmProxy[25]= \filter -> ~complexResFunc;
 
+		~harmProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
 
 
 
 
+		~percProxy.source ={
+			|noiseSpd =1, amp =1, rate=1|
 
+			BufRd.ar(1, ~percBuf,
+				Phasor.ar(0,1.lag(0.1),
+					start: BufRd.kr(1, ~percSliceBuf,
+						LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~percSliceBuf) -1), 0, 2),
+					end: BufRd.kr(1, ~percSliceBuf,
+						LFNoise0.kr(noiseSpd).range(1, BufFrames.kr(~percSliceBuf)), 0, 2),
+					resetPos: BufRd.kr(1,~percSliceBuf,
+						LFNoise0.kr(noiseSpd).range(0, BufFrames.kr(~percSliceBuf) - 1), 0, 1)),
+				0,
+				2) * amp;
+		};
 
+		~percProxy[10] = \filter -> {|in, pan=0| Splay.ar(in, 0, 1, pan)};
 
 
+		~percProxy[15] = \filter -> {|in, mix=0, delayTime=0.2, decayTime=1| CombC.ar(in, 1, delayTime.lag(0.1), decayTime)};
 
+		~percProxy[20] = \filter -> {|in, cutoffFreq=5000, rq=1| RLPF.ar(in, cutoffFreq, rq)};
 
+		~percProxy[25]= \filter -> ~complexResFunc;
 
+		~percProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
 
 
+		Tdef(\interaction).play;
+	};
 
 
-(
-x={
-	var in, amp, freq, hasFreq, out;
-	in = SoundIn.ar(0);
-	amp = Amplitude.ar(in);
-	# freq, hasFreq = Pitch.kr(in);
-	LFTri.ar(freq*[1,2]) * amp;
-}.play
-)
+	{
+		inf.do{
+			|i|
 
-x.free;
+			//if one person appears
+			case
+			{(~people ==1) && (~previousPerson == 0)}
+			//this will start the process of recording and processing the sound
+			{
+				//stop playing beginning of the piece
+				Tdef(\playGran).stop;
+				~granGrp.set(\gate, 0);
 
+				//start second part, processing sounds
+				~processFunc.value;
+				"person detected".postln;
 
 
-// Prepare the buffer
-b = Buffer.alloc(s, 512);
 
-(
-x = {
-	var sig, chain, onsets, pips,freq, hasFreq,  trigger;
+			}
 
-	sig = SoundIn.ar(0);
+			//if it disappears from range
+			{(~people ==0) && (~previousPerson == 1)}
+			//tstop proxys
+			{[~harmProxy, ~percProxy].collect({ |i| i.source = nil});
+				"person out of range".postln;
 
-	chain = FFT(b, sig);
-	# freq, hasFreq = Pitch.kr(sig);
+				Tdef(\interaction).stop;
+				//go back to beginning
+				Tdef(\playGran).play
 
-	// - move the mouse left/right to change the threshold:
-	onsets = Onsets.kr(chain, MouseX.kr(0,1), \complex);
+			};
 
-	trigger= SendTrig.kr(onsets, freq);
-}.play;
-)
-
-(
-// register to receive message
-a= OSCresponder(s.addr,'/tr',{ arg time,responder,msg;
-	[time,responder,msg].postln;
-}).add;
-)
-
-a.remove; //Free the OSCresponder
-x.free; // Free the synth
-b.free; // Free the buffer
-
-
-s.dumpOSC
-(
-
-var n, id;
-
-
-
-//loopback address is 127.0.0.1- try substituting the IP address of another user's machine
-
-n=NetAddr("127.0.0.1", 57110); //57110 is the port number; this is the standard number used by the Server
-
-
-
-id=s.nextNodeID;
-
-n.sendMsg("s_new",\default,id,0,0);   //sendMsg works out the correct OSC message for you
-
-
-
-SystemClock.sched(1.0,{n.sendMsg("n_free",id); });
-
-)
-
-
-
-
-// other ideas
-(
-s.freeAll;
-s.reboot;
-Window.closeAll;
-s.waitForBoot{
-
-	b = Buffer.alloc(s, s.sampleRate * 5, 1);
-
-	~micBus = Bus.audio(s,1);
-	~ptrBus = Bus.audio(s,1);
-
-
-	//SynthDefs based on Eli Fieldsteel real time granulator:
-	// https://github.com/elifieldsteel/SuperCollider-Tutorials/blob/master/full%20video%20scripts/26_script.scd
-
-	SynthDef(\mic, {
-		arg in=0, out=0, amp=1;
-		var sig;
-		sig = SoundIn.ar(in) * amp;
-		Out.ar(out, sig);
-	}).add;
-
-
-	SynthDef(\ptr, {
-		arg out=0, buf=0, rate =1;
-		var sig;
-		sig = Phasor.ar(0, BufRateScale.kr(buf)*rate, 0, BufFrames.kr(buf));
-		Out.ar(out, sig);
-	}).add;
-
-	SynthDef(\rec, {
-		arg ptrIn=0, micIn=0, buf=0;
-		var ptr, sig;
-		ptr = In.ar(ptrIn, 1);
-		sig = In.ar(micIn, 1);
-		BufWr.ar(sig, buf, ptr);
-	}).add;
-
-
-
-
-	SynthDef(\player, { |volIn= 0.2, fadeT =5, gateWhich=0, dens=20, baseDur=0.1, durRand=1, buf=0,
-		rate=1, pos=0,
-		grainEnv=(-1), sync= 1, pan=0, panRand=0, rateRand =1, gate=1, atk=1, rel=1, amp1=0.5, amp2=0.5, vol=1, out=0, ptrBus=0, ptrSampleDelay=20000, ptrRandSamples=5000, minPtrDelay=1000, fadeCurve = (-3), ptrRandSpeed=100|
-
-		var sig, env, densCtrl, rateCtrl, posCtrl, panCtrl, ptr, ptrRand, totalDelay, durCtrl, maxGrainDur, sig1, player, which;
-
-
-
-		env = EnvGen.kr(Env.asr(atk,1,rel), gate, doneAction:2);
-
-		densCtrl = Select.ar(sync, [Dust.ar(dens), Impulse.ar(dens)]); //para seleccionar si la densidad es fija o aleatoria
-
-		durCtrl = baseDur * LFNoise1.ar(100).exprange(1/durRand, durRand);
-
-		rateCtrl = rate * LFNoise1.ar(100).exprange(1/rateRand, rateRand);
-
-		panCtrl = pan + LFNoise1.kr(100).bipolar(panRand);
-
-		ptrRand = LFNoise1.ar(ptrRandSpeed).bipolar(ptrRandSamples);
-
-		totalDelay = max(ptrSampleDelay  - ptrRand, minPtrDelay);
-
-		ptr = In.ar(ptrBus, 1);
-		ptr = ptr - ptrSampleDelay;
-		ptr = ptr / BufFrames.kr(buf);
-
-		maxGrainDur = (totalDelay / rateCtrl) / SampleRate.ir;
-		durCtrl = min(durCtrl , maxGrainDur);
-
-
-		sig = GrainBuf.ar(
-			2,
-			densCtrl,
-			durCtrl,
-			buf,
-			rateCtrl,
-			ptr,
-			2,
-			panCtrl,
-			grainEnv
-		);
-
-		sig1 = Splay.ar(SoundIn.ar(0)*volIn);
-
-
-		which = EnvGen.kr(Env.asr(fadeT,0.9, fadeT, fadeCurve), gateWhich);
-
-		player = XFade2.ar(sig1 * amp1, sig* amp2, which*2-1);
-
-		Out.ar(Limiter.ar(out, 0.9), player * env * vol)
-	}).add;
-
-
-	~micGrp = Group.new;
-	~ptrGrp = Group.after(~micGrp);
-	~recGrp = Group.after(~ptrGrp);
-	~granGrp = Group.after(~recGrp);
-
-
-	Synth(\mic, [\in, 0, \out, ~micBus], ~micGrp);
-	Synth(\ptr, [\buf, b, \out, ~ptrBus],~ptrGrp);
-	Synth(\rec, [\ptrIn, ~ptrBus, \micIn, ~micBus, \buf, b], ~recGrp);
-
-
-	s.sync;
-	b.zero;
-
-	~sounds = Array.newClear(8);
-	//plays 5 instances of the Synth, these are the main sounds
-8.collect({
-		arg n;
-
-		~sounds[n] =Synth(\player, [
-			\amp, 1/16,
-			\amp2, 0.5,
-			\buf, b,
-			\out, 0,
-			\atk, 1,
-			\rel, 10,
-			\gate, 1,
-			\sync, [0,1].wchoose([0.2, 0.8]),
-			\dens, exprand(5,100),
-			\baseDur, 0.05,
-			\durRand, 1.5,
-			\rate, ((0..12)*([-1,1].wchoose([0.7, 0.3]))).choose.midiratio,
-			\rateRand, 1.midiratio,
-			\pan, rrand(-0.5, 0.5),
-			\panRand, 0.5,
-			\grainEnv, -1,
-			\ptrBus, ~ptrBus,
-			\ptrSampleDelay, n.linlin(0,8,1000,s.sampleRate*2) * rrand(0.8, 1.2),
-			\ptrRandSpeed, 10,
-			\ptrRandSamples, 1000,
-			\minPtrDelay, 1000,
-
-			\fadeT, rrand(1.0, 5.0),
-			\fadeCurve, rrand(-2.0, -3.0),
-
-			\gateWhich, 1
-		], ~granGrp
-		);
-	});
-
+			~previousPerson = ~people;
+			1.wait;
+		}
+	}.fork;
 
 }
-
 )
-
-~granGrp.set(\gate, 0)
-
-
-(
-~sounds.collect({|synth, n| synth.set(\amp, 1/16,
-
-			\sync, [0,1].wchoose([0.2, 0.8]),
-			\dens, exprand(5,100),
-	\rate, ((0..12)*([-1,1].wchoose([0.7, 0.3]))).choose.midiratio,
-			\rateRand, 1.midiratio,
-			\pan, rrand(-0.5, 0.5),
-	\ptrSampleDelay, n.linlin(0,8,1000,s.sampleRate*2) * rrand(0.8,1.2),
-			\ptrRandSpeed, 10,
-			\ptrRandSamples, 1000,
-			\minPtrDelay, 1000,
-
-			\fadeT, rrand(1.0, 5.0),
-	\fadeCurve, rrand(-2.0, -3.0))})
-)
-

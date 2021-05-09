@@ -146,11 +146,12 @@ Tdef(\valuePoster,
 };
 
 
-
 //Tdefs that help interact with the soud
 
 Tdef(\interaction,
 	{
+		1.wait;
+
 		inf.do{
 			|i|
 
@@ -167,7 +168,7 @@ Tdef(\interaction,
 
 
 				//hand
-				\amp, ~mapFunc.value('/Right_Hand', "y", 0, 5),
+				\amp, ~mapFunc.value('/Right_Hand', "y", 0, 10),
 				\pan, ~mapFunc.value('/Right_Hand', "x", -1, 1),
 				\mix, ~mapFunc.value('/Right_Hand', "z", 0.001, 1, false),//false makes it exponential
 
@@ -178,10 +179,7 @@ Tdef(\interaction,
 
 				//Foot
 				\modHiMul, ~mapFunc.value('/Right_Foot', "x", 1, 3.5),
-				\resonanceDecay, ~mapFunc.value('/Right_Foot', "y", 0.1, 1),
-
-
-
+				\resonanceDecay, ~mapFunc.value('/Right_Foot', "y", 0.5, 3),
 
 			);
 
@@ -210,7 +208,7 @@ Tdef(\interaction,
 				\decayTime, ~mapFunc.value('/Left_Shoulder', "x", 2, 0.1),
 
 				//hand
-				\amp, ~mapFunc.value('/Left_Hand', "y", 0, 5),
+				\amp, ~mapFunc.value('/Left_Hand', "y", 0, 10),
 				\pan, ~mapFunc.value('/Left_Hand', "x", -1, 1),
 				\mix, ~mapFunc.value('/Left_Hand', "z", 0.001, 1, false),//false makes it exponential
 
@@ -221,7 +219,7 @@ Tdef(\interaction,
 
 				//Foot
 				\modHiMul, ~mapFunc.value('/Left_Foot', "x", 3.5, 1),
-				\resonanceDecay, ~mapFunc.value('/Left_Foot', "y", 0.1, 1),
+				\resonanceDecay, ~mapFunc.value('/Left_Foot', "y", 0.5, 3),
 
 			);
 

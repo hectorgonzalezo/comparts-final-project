@@ -7,6 +7,8 @@ s.waitForBoot{
 
 	//load code from beginning of the piece
 	"granular-beginning.scd".resolveRelative.load;
+
+	s.sync;
 	//start with zero people
 	~previousPerson = 0;
 
@@ -22,6 +24,7 @@ s.waitForBoot{
 	}).add;
 
 
+	s.sync;
 
 	~complexResFunc = {
 		|in, mixMod, modSpeed= 200, modLoRange=200, modHiMul= 2, resonanceDecay=0.1|
@@ -178,6 +181,13 @@ s.waitForBoot{
 	};
 
 
+	s.sync;
+
+	s.record;
+
+
+	//this starts playing the piece!!!!!
+
 	{
 		inf.do{
 			|i|
@@ -244,6 +254,9 @@ Window.closeAll;
 			[~harmProxy, ~percProxy].collect({ |i| i.source = nil});
 
 			Tdef(\interaction).stop;
+
+			{s.stopRecording}.defer(30)
+
 	})
 })
 .font_(Font("Helvetica", 50));

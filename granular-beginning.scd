@@ -85,6 +85,8 @@
 		Out.ar(Limiter.ar(out, 0.9), player * env * vol)
 	}).add;
 
+s.sync;
+
 
 	~micGrp = Group.new;
 	~ptrGrp = Group.after(~micGrp);

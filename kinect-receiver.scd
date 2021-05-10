@@ -155,6 +155,8 @@ Tdef(\interaction,
 		inf.do{
 			|i|
 
+
+
 			~harmProxy.set(
 				//Head
 				\cutoffFreq, ~mapFunc.value('/Head', "y", 400, 10000),
@@ -168,12 +170,12 @@ Tdef(\interaction,
 
 
 				//hand
-				\amp, ~mapFunc.value('/Right_Hand', "y", 0, 7),
-				\pan, ~mapFunc.value('/Right_Hand', "x", -1, 1),
+				\amp, ~mapFunc.value('/Right_Hand', "y", 1, 33.0, false),
+				\pan, ~mapFunc.value('/Right_Hand', "x", 1, -1),
 				\mix, ~mapFunc.value('/Right_Hand', "z", 0.001, 1, false),//false makes it exponential
 
 				//Knee
-				\mixMod, ~mapFunc.value('/Right_Knee', "y", 0.8, 1),
+				\mixMod, ~mapFunc.value('/Right_Knee', "y", 0.85, 1),
 				\modSpeed, ~mapFunc.value('/Right_Knee', "x", 30, 500),
 				\modLoRange, ~mapFunc.value('/Right_Knee', "z", 30, 500),
 
@@ -208,12 +210,12 @@ Tdef(\interaction,
 				\decayTime, ~mapFunc.value('/Left_Shoulder', "x", 2, 0.1),
 
 				//hand
-				\amp, ~mapFunc.value('/Left_Hand', "y", 0, 7),
-				\pan, ~mapFunc.value('/Left_Hand', "x", -1, 1),
+				\amp, ~mapFunc.value('/Left_Hand', "y", 1, 33.0, false),
+				\pan, ~mapFunc.value('/Left_Hand', "x", 1, -1),
 				\mix, ~mapFunc.value('/Left_Hand', "z", 0.001, 1, false),//false makes it exponential
 
 				//Knee
-				\mixMod, ~mapFunc.value('/Left_Knee', "y", 1, 0.8),
+				\mixMod, ~mapFunc.value('/Left_Knee', "y", 1, 0.85),
 				\modSpeed, ~mapFunc.value('/Left_Knee', "x", 500, 30),
 				\modLoRange, ~mapFunc.value('/Left_Knee', "z", 500, 30),
 
@@ -234,7 +236,7 @@ Tdef(\interaction,
 				});
 
 
-			0.2.wait;
+			0.1.wait;
 		}
 	}
 )

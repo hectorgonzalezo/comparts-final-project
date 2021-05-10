@@ -13,7 +13,7 @@ s.waitForBoot{
 	~previousPerson = 0;
 
 	//how long to record performance after detectin person, low and high limits.
-	~recordingTime = {rrand(10, 20)};
+	~recordingTime = {rrand(80, 120)};
 
 
 
@@ -143,7 +143,7 @@ s.waitForBoot{
 
 		~harmProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
 
-		~harmProxy[100] = \filter -> {|in| Limiter.ar(in, 0.9)};
+		~harmProxy[100] = \filter -> {|in| Limiter.ar(in, 0.97)};
 
 
 
@@ -174,7 +174,7 @@ s.waitForBoot{
 
 		~percProxy[30] = \filter -> {|in, mix=0| FreeVerb.ar(in, mix, 1, 0)};
 
-		~percProxy[100] = \filter -> {|in| Limiter.ar(in, 0.9)};
+		~percProxy[100] = \filter -> {|in| Limiter.ar(in, 0.97)};
 
 
 		Tdef(\interaction).play;
